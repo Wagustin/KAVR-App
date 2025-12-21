@@ -1,0 +1,69 @@
+<resources>
+    <string name="app_name">Plantilla Android Kotlin</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_profile_name">Usuario Admin</string>
+    <string name="settings_profile_email">admin@ejemplo.com</string>
+    <string name="settings_preferences_title">Preferencias</string>
+    <string name="settings_notifications_title">Notificaciones</string>
+    <string name="settings_notifications_subtitle">Activar notificaciones push</string>
+    <string name="settings_notifications_enabled_message">Notificaciones activadas</string>
+    <string name="settings_notifications_disabled_message">Notificaciones desactivadas</string>
+    <string name="settings_dark_mode_title">Modo Oscuro</string>
+    <string name="settings_dark_mode_subtitle">Cambiar a tema oscuro</string>
+    <string name="settings_language_title">Idioma</string>
+    <string name="settings_language_subtitle">Español</string>
+    <string name="settings_account_title">Cuenta</string>
+    <string name="settings_edit_profile_title">Editar Perfil</string>
+    <string name="settings_edit_profile_subtitle">Actualiza tu información personal</string>
+    <string name="settings_change_password_title">Cambiar Contraseña</string>
+    <string name="settings_change_password_subtitle">Actualiza tu contraseña</string>
+    <string name="settings_privacy_security_title">Privacidad y Seguridad</string>
+    <string name="settings_privacy_security_subtitle">Gestiona tus ajustes de privacidad</string>
+    <string name="settings_about_title">Acerca de</string>
+    <string name="settings_terms_title">Términos y Condiciones</string>
+    <string name="settings_terms_subtitle">Lee nuestros términos de servicio</string>
+    <string name="settings_privacy_policy_title">Política de Privacidad</string>
+    <string name="settings_privacy_policy_subtitle">Lee nuestra política de privacidad</string>
+    <string name="settings_logout_title">Cerrar Sesión</string>
+    <string name="settings_logout_dialog_message">¿Estás seguro de que quieres cerrar sesión? Tendrás que iniciar sesión de nuevo para acceder a tu cuenta.</string>
+    <string name="settings_cancel_action">Cancelar</string>
+    <string name="settings_close_action">Cerrar</string>
+    <string name="settings_version_label">Versión 1.0.0</string>
+    <string name="settings_terms_dialog_message">Estos son términos de ejemplo para esta plantilla. Reemplázalos con los términos reales de tu producto antes del lanzamiento.</string>
+    <string name="settings_privacy_dialog_message">Esta es una política de privacidad de ejemplo. Reemplázala con el contenido real de tu política antes del lanzamiento.</string>
+    
+    <!-- Auth Strings -->
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="login_subtitle">Bienvenido de nuevo</string>
+    <string name="username_label">Nombre de usuario</string>
+    <string name="password_label">Contraseña</string>
+    <string name="login_button">Entrar</string>
+    
+    <!-- Home Strings -->
+    <string name="home_loading">Cargando productos increíbles...</string>
+    <string name="home_error_title">¡Ups! Algo salió mal</string>
+    <string name="home_error_unknown">Error desconocido</string>
+    <string name="home_title">✨ Escaparate de Productos</string>
+    <string name="home_subtitle">Descubre productos asombrosos</string>
+    <string name="home_gallery_title">📸 Galería de Productos</string>
+    <string name="home_brand_title">🏷️ Marca</string>
+    <string name="home_description_title">📝 Descripción</string>
+    <string name="home_image_desc">Imagen del Producto</string>
+
+    <!-- Navigation Strings -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_favorites">Favoritos</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="nav_settings">Ajustes</string>
+    <string name="nav_login">Login</string>
+    <string name="nav_onboarding">Intro</string>
+
+    <!-- Onboarding Strings -->
+    <string name="onboarding_welcome_title">Bienvenido a la App</string>
+    <string name="onboarding_welcome_subtitle">Descubre características increíbles y comienza tu viaje hoy mismo</string>
+    <string name="onboarding_get_started_button">Empezar</string>
+
+    <!-- Other Screens Strings -->
+    <string name="favorites_item_title">Elemento Favorito</string>
+    <string name="profile_title">Pantalla de Perfil</string>
+</resources>
