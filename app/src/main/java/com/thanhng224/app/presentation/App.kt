@@ -130,13 +130,8 @@ fun App(
                         composable(Screen.Favorites.route) { FavoritesScreen(navController) }
                         composable(Screen.Profile.route) { ProfileScreen() }
                         composable(Screen.Settings.route) {
-                            SettingsScreen(
-                                onLogout = {
-                                    navController.navigate(Screen.Login.route) {
-                                        popUpTo(0) { inclusive = true }
-                                    }
-                                }
-                            )
+                            // El parámetro onLogout ya no es necesario aquí
+                            SettingsScreen() 
                         }
                         
                         // Rutas de juegos con argumentos
@@ -144,16 +139,18 @@ fun App(
                             route = Screen.SnakeGame.route,
                             arguments = listOf(navArgument("mode") { type = NavType.IntType })
                         ) { backStackEntry ->
-                            // Pasamos el argumento mode (aunque Snake aun no lo usa, está preparado)
                             SnakeGameScreen() 
                         }
                         
                         composable(
                             route = Screen.MemoryGame.route,
-                            arguments = listOf(navArgument("mode") { type = NavType.IntType })
+                            arguments = listOf(
+                                navArgument("mode") { type = NavType.IntType },
+                                navArgument("submode") { type = NavType.IntType },
+                                navArgument("difficulty") { type = NavType.IntType },
+                            )
                         ) { backStackEntry ->
-                            // MemoryViewModel ahora leerá este argumento automáticamente con SavedStateHandle
-                            MemoryGameScreen()
+                            MemoryGameScreen(navController = navController)
                         }
                     }
 
