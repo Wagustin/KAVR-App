@@ -46,6 +46,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.thanhng224.app.feature.auth.presentation.ui.LoginScreen
+import com.thanhng224.app.feature.games.SnakeGameScreen
 import com.thanhng224.app.feature.onboarding.presentation.ui.OnboardingScreen
 import com.thanhng224.app.feature.product.presentation.ui.HomeScreen
 import com.thanhng224.app.presentation.navigation.Screen
@@ -123,7 +124,7 @@ fun App(
                             )
                         }
                         composable(Screen.Home.route) { HomeScreen() }
-                        composable(Screen.Favorites.route) { FavoritesScreen() }
+                        composable(Screen.Favorites.route) { FavoritesScreen(navController) }
                         composable(Screen.Profile.route) { ProfileScreen() }
                         composable(Screen.Settings.route) {
                             SettingsScreen(
@@ -134,6 +135,7 @@ fun App(
                                 }
                             )
                         }
+                        composable(Screen.SnakeGame.route) { SnakeGameScreen() }
                     }
 
                     if (showBottomBar) {

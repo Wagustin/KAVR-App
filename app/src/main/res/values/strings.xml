@@ -52,7 +52,7 @@
 
     <!-- Navigation Strings -->
     <string name="nav_home">Inicio</string>
-    <string name="nav_favorites">Favoritos</string>
+    <string name="nav_favorites">Juegos</string>
     <string name="nav_profile">Perfil</string>
     <string name="nav_settings">Ajustes</string>
     <string name="nav_login">Login</string>
@@ -66,4 +66,7 @@
     <!-- Other Screens Strings -->
     <string name="favorites_item_title">Elemento Favorito</string>
     <string name="profile_title">Pantalla de Perfil</string>
+
+    <!-- Game Strings -->
+    <string name="game_snake">Snake Game</string>
 </resources>
