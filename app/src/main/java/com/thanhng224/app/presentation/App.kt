@@ -133,21 +133,20 @@ fun App(
                             SettingsScreen()
                         }
                         
-                        // Rutas de juegos con argumentos
+                        // CORRECCIÓN: Rutas de juegos con argumentos actualizados
                         composable(
                             route = Screen.SnakeGame.route,
-                            arguments = listOf(navArgument("mode") { type = NavType.IntType })
+                            arguments = listOf(navArgument("gameMode") { type = IntType })
                         ) { 
                             SnakeGameScreen()
                         }
                         
-                        // CORRECCIÓN: El composable ahora espera los 3 argumentos en la ruta.
                         composable(
                             route = Screen.MemoryGame.route,
                             arguments = listOf(
-                                navArgument("mode") { type = NavType.IntType },
-                                navArgument("submode") { type = NavType.IntType },
-                                navArgument("difficulty") { type = NavType.IntType },
+                                navArgument("players") { type = IntType },
+                                navArgument("submode") { type = IntType },
+                                navArgument("difficulty") { type = IntType },
                             )
                         ) { 
                             MemoryGameScreen(navController = navController)
