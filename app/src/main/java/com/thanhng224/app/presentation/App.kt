@@ -130,7 +130,6 @@ fun App(
                         composable(Screen.Favorites.route) { FavoritesScreen(navController) }
                         composable(Screen.Profile.route) { ProfileScreen() }
                         composable(Screen.Settings.route) {
-                            // El parámetro onLogout ya no es necesario aquí
                             SettingsScreen()
                         }
                         
@@ -138,10 +137,11 @@ fun App(
                         composable(
                             route = Screen.SnakeGame.route,
                             arguments = listOf(navArgument("mode") { type = NavType.IntType })
-                        ) { // No se usa backStackEntry, se elimina para quitar la advertencia
+                        ) { 
                             SnakeGameScreen()
                         }
                         
+                        // CORRECCIÓN: El composable ahora espera los 3 argumentos en la ruta.
                         composable(
                             route = Screen.MemoryGame.route,
                             arguments = listOf(
@@ -149,7 +149,7 @@ fun App(
                                 navArgument("submode") { type = NavType.IntType },
                                 navArgument("difficulty") { type = NavType.IntType },
                             )
-                        ) { // No se usa backStackEntry, se elimina para quitar la advertencia
+                        ) { 
                             MemoryGameScreen(navController = navController)
                         }
                     }
