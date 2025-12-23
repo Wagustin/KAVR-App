@@ -2,40 +2,28 @@ package com.thanhng224.app.presentation.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Gamepad
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.thanhng224.app.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(navController: NavController) {
+    // Estado para controlar qué juego se seleccionó. Si es null, no hay diálogo.
+    var showGameModeDialog by remember { mutableStateOf<Screen?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
@@ -59,7 +47,8 @@ fun FavoritesScreen(navController: NavController) {
                     description = "El clásico juego de la serpiente",
                     icon = Icons.Default.Gamepad,
                     color = Color(0xFF4CAF50), // Verde
-                    onClick = { navController.navigate(Screen.SnakeGame.route) }
+                    // Al hacer clic, guardamos que queremos jugar al Snake y mostramos el diálogo
+                    onClick = { showGameModeDialog = Screen.SnakeGame }
                 )
             }
             
@@ -69,11 +58,97 @@ fun FavoritesScreen(navController: NavController) {
                     description = "Encuentra los pares (versión colores)",
                     icon = Icons.Default.Favorite,
                     color = Color(0xFFE91E63), // Rosa
-                    onClick = { navController.navigate(Screen.MemoryGame.route) }
+                    // Al hacer clic, guardamos que queremos jugar al Memory y mostramos el diálogo
+                    onClick = { showGameModeDialog = Screen.MemoryGame }
                 )
             }
         }
     }
+
+    // Lógica del Diálogo
+    if (showGameModeDialog != null) {
+        GameModeSelectionDialog(
+            onDismiss = { showGameModeDialog = null },
+            onModeSelected = { mode ->
+                // Determinamos la ruta basada en el juego seleccionado y el modo
+                val route = when (showGameModeDialog) {
+                    Screen.SnakeGame -> Screen.SnakeGame.createRoute(mode)
+                    Screen.MemoryGame -> Screen.MemoryGame.createRoute(mode)
+                    else -> null
+                }
+                
+                route?.let {
+                    navController.navigate(it)
+                    showGameModeDialog = null
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun GameModeSelectionDialog(
+    onDismiss: () -> Unit,
+    onModeSelected: (Int) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "¿Cuántos jugadores?", style = MaterialTheme.typography.headlineSmall)
+        },
+        text = {
+            Column {
+                Text("Selecciona el modo de juego:", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Botón 1 Jugador
+                    Button(
+                        onClick = { onModeSelected(1) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(80.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text("1", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                    }
+
+                    // Botón 2 Jugadores
+                    Button(
+                        onClick = { onModeSelected(2) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(80.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row {
+                                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                            }
+                            Text("2", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {}, // No usamos botón de confirmación estándar
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
+    )
 }
 
 @Composable

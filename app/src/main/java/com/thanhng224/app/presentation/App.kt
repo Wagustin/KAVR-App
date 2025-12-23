@@ -41,10 +41,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.thanhng224.app.feature.auth.presentation.ui.LoginScreen
 import com.thanhng224.app.feature.games.MemoryGameScreen
 import com.thanhng224.app.feature.games.SnakeGameScreen
@@ -136,8 +138,23 @@ fun App(
                                 }
                             )
                         }
-                        composable(Screen.SnakeGame.route) { SnakeGameScreen() }
-                        composable(Screen.MemoryGame.route) { MemoryGameScreen() }
+                        
+                        // Rutas de juegos con argumentos
+                        composable(
+                            route = Screen.SnakeGame.route,
+                            arguments = listOf(navArgument("mode") { type = NavType.IntType })
+                        ) { backStackEntry ->
+                            // Pasamos el argumento mode (aunque Snake aun no lo usa, está preparado)
+                            SnakeGameScreen() 
+                        }
+                        
+                        composable(
+                            route = Screen.MemoryGame.route,
+                            arguments = listOf(navArgument("mode") { type = NavType.IntType })
+                        ) { backStackEntry ->
+                            // MemoryViewModel ahora leerá este argumento automáticamente con SavedStateHandle
+                            MemoryGameScreen()
+                        }
                     }
 
                     if (showBottomBar) {

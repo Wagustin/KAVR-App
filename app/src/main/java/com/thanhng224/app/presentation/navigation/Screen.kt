@@ -23,6 +23,10 @@ sealed class Screen(val route: String, val titleRes: Int, val icon: ImageVector)
     data object Settings : Screen("settings", R.string.nav_settings, Icons.Default.Settings)
     
     // New Game Screens
-    data object SnakeGame : Screen("snake_game", R.string.game_snake, Icons.Default.Gamepad)
-    data object MemoryGame : Screen("memory_game", R.string.game_memory, Icons.Default.Star)
+    data object SnakeGame : Screen("snake_game/{mode}", R.string.game_snake, Icons.Default.Gamepad) {
+        fun createRoute(mode: Int) = "snake_game/$mode"
+    }
+    data object MemoryGame : Screen("memory_game/{mode}", R.string.game_memory, Icons.Default.Star) {
+        fun createRoute(mode: Int) = "memory_game/$mode"
+    }
 }
