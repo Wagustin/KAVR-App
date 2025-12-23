@@ -69,4 +69,5 @@
 
     <!-- Game Strings -->
     <string name="game_snake">Snake Game</string>
+    <string name="game_memory">Memory de Nosotros</string>
 </resources>

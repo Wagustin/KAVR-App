@@ -46,6 +46,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.thanhng224.app.feature.auth.presentation.ui.LoginScreen
+import com.thanhng224.app.feature.games.MemoryGameScreen
 import com.thanhng224.app.feature.games.SnakeGameScreen
 import com.thanhng224.app.feature.onboarding.presentation.ui.OnboardingScreen
 import com.thanhng224.app.feature.product.presentation.ui.HomeScreen
@@ -136,6 +137,7 @@ fun App(
                             )
                         }
                         composable(Screen.SnakeGame.route) { SnakeGameScreen() }
+                        composable(Screen.MemoryGame.route) { MemoryGameScreen() }
                     }
 
                     if (showBottomBar) {
