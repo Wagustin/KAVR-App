@@ -23,13 +23,11 @@ sealed class Screen(val route: String, val titleRes: Int, val icon: ImageVector)
         fun createRoute(players: Int, submode: Int, difficulty: Int) = "memory_game/$players/$submode/$difficulty"
 
         // CORRECCIÓN: Constantes movidas aquí para un alcance claro y sin ambigüedades.
-        companion object {
-            const val SUBMODE_ZEN = 0
-            const val SUBMODE_ATTEMPTS = 1
-            const val SUBMODE_TIMER = 2
-            const val DIFFICULTY_EASY = 0
-            const val DIFFICULTY_MEDIUM = 1
-            const val DIFFICULTY_HARD = 2
-        }
+        const val SUBMODE_ZEN = 0
+        const val SUBMODE_ATTEMPTS = 1
+        const val SUBMODE_TIMER = 2
+        const val DIFFICULTY_EASY = 0
+        const val DIFFICULTY_MEDIUM = 1
+        const val DIFFICULTY_HARD = 2
     }
 }

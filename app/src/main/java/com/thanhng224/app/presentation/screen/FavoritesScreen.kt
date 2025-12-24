@@ -177,9 +177,9 @@ fun SimplePlayerSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) 
 @Composable
 fun SnakeModeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
     CustomDialogBase(onDismiss = onDismiss, title = "Modo de Juego") {
-        WideSelectionButton("Casual  leisurely", null) { onSelect(0) }
+        WideSelectionButton("Casual", null) { onSelect(0) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Tryhard 🥵", null) { onSelect(1) }
+        WideSelectionButton("Tryhard", null) { onSelect(1) }
     }
 }
 
