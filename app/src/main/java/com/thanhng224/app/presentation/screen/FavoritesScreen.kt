@@ -50,10 +50,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import com.thanhng224.app.presentation.navigation.MemoryGameConfig
 import com.thanhng224.app.presentation.navigation.Screen
 
-// CORRECCIÓN: Enum para gestionar la máquina de estados de los diálogos
 private enum class DialogStep {
     HIDDEN, PLAYERS, GAME_TYPE, DIFFICULTY, SNAKE_MODE
 }
@@ -61,14 +59,10 @@ private enum class DialogStep {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(navController: NavController) {
-    // --- ESTADOS ---
     var currentFlow by remember { mutableStateOf(DialogStep.HIDDEN) }
-    
-    // Estados para el flujo de configuración de Memory Game
     var selectedPlayerMode by remember { mutableIntStateOf(1) }
-    var selectedGameType by remember { mutableIntStateOf(MemoryGameConfig.SUBMODE_ZEN) }
+    var selectedGameType by remember { mutableIntStateOf(Screen.MemoryGame.SUBMODE_ZEN) }
 
-    // --- UI PRINCIPAL ---
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
             title = { Text("Juegos") },
@@ -87,14 +81,12 @@ fun FavoritesScreen(navController: NavController) {
             }
             item {
                 GameCard("Memory de Nosotros", "Encuentra los pares", Icons.Default.Favorite, Color(0xFFE91E63)) {
-                    currentFlow = DialogStep.PLAYERS // Inicia el flujo del Memory Game
+                    currentFlow = DialogStep.PLAYERS
                 }
             }
         }
     }
 
-    // --- LÓGICA DE DIÁLOGOS ---
-    
     when (currentFlow) {
         DialogStep.SNAKE_MODE -> {
             SnakeModeSelectionDialog(
@@ -112,7 +104,7 @@ fun FavoritesScreen(navController: NavController) {
                 onSelect = { mode ->
                     selectedPlayerMode = mode
                     if (mode == 2) { // Multijugador va directo
-                        navController.navigate(Screen.MemoryGame.createRoute(2, MemoryGameConfig.SUBMODE_ZEN, MemoryGameConfig.DIFFICULTY_MEDIUM))
+                        navController.navigate(Screen.MemoryGame.createRoute(2, Screen.MemoryGame.SUBMODE_ZEN, Screen.MemoryGame.DIFFICULTY_MEDIUM))
                         currentFlow = DialogStep.HIDDEN
                     } else { // Un jugador avanza
                         currentFlow = DialogStep.GAME_TYPE
@@ -126,8 +118,8 @@ fun FavoritesScreen(navController: NavController) {
                 onDismiss = { currentFlow = DialogStep.PLAYERS }, // Volver
                 onSelect = { type ->
                     selectedGameType = type
-                    if (type == MemoryGameConfig.SUBMODE_ZEN) { // Zen va directo
-                        navController.navigate(Screen.MemoryGame.createRoute(1, MemoryGameConfig.SUBMODE_ZEN, MemoryGameConfig.DIFFICULTY_MEDIUM))
+                    if (type == Screen.MemoryGame.SUBMODE_ZEN) { // Zen va directo
+                        navController.navigate(Screen.MemoryGame.createRoute(1, Screen.MemoryGame.SUBMODE_ZEN, Screen.MemoryGame.DIFFICULTY_MEDIUM))
                         currentFlow = DialogStep.HIDDEN
                     } else { // Otros avanzan a dificultad
                         currentFlow = DialogStep.DIFFICULTY
@@ -149,8 +141,6 @@ fun FavoritesScreen(navController: NavController) {
         DialogStep.HIDDEN -> { /* No mostrar diálogos */ }
     }
 }
-
-// --- COMPONENTES DE DIÁLOGO REUTILIZABLES ---
 
 @Composable
 fun CustomDialogBase(onDismiss: () -> Unit, title: String, content: @Composable ColumnScope.() -> Unit) {
@@ -196,22 +186,22 @@ fun SnakeModeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
 @Composable
 fun GameTypeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
     CustomDialogBase(onDismiss = onDismiss, title = "Estilo de Juego") {
-        WideSelectionButton("Zen (Sin estrés) 🌸", Icons.Default.SelfImprovement) { onSelect(MemoryGameConfig.SUBMODE_ZEN) }
+        WideSelectionButton("Zen (Sin estrés) 🌸", Icons.Default.SelfImprovement) { onSelect(Screen.MemoryGame.SUBMODE_ZEN) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Por Vidas ❤️", Icons.Default.Favorite) { onSelect(MemoryGameConfig.SUBMODE_ATTEMPTS) }
+        WideSelectionButton("Por Vidas ❤️", Icons.Default.Favorite) { onSelect(Screen.MemoryGame.SUBMODE_ATTEMPTS) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Contra Reloj ⏱️", Icons.Default.Timer) { onSelect(MemoryGameConfig.SUBMODE_TIMER) }
+        WideSelectionButton("Contra Reloj ⏱️", Icons.Default.Timer) { onSelect(Screen.MemoryGame.SUBMODE_TIMER) }
     }
 }
 
 @Composable
 fun DifficultySelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
     CustomDialogBase(onDismiss = onDismiss, title = "Dificultad") {
-        WideSelectionButton("Fácil (16 cartas) 🟢", null) { onSelect(MemoryGameConfig.DIFFICULTY_EASY) }
+        WideSelectionButton("Fácil (16 cartas) 🟢", null) { onSelect(Screen.MemoryGame.DIFFICULTY_EASY) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Medio (20 cartas) 🟡", null) { onSelect(MemoryGameConfig.DIFFICULTY_MEDIUM) }
+        WideSelectionButton("Medio (20 cartas) 🟡", null) { onSelect(Screen.MemoryGame.DIFFICULTY_MEDIUM) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Difícil (24 cartas) 🔴", null) { onSelect(MemoryGameConfig.DIFFICULTY_HARD) }
+        WideSelectionButton("Difícil (24 cartas) 🔴", null) { onSelect(Screen.MemoryGame.DIFFICULTY_HARD) }
     }
 }
 

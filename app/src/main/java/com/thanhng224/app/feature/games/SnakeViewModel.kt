@@ -15,6 +15,13 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.random.Random
 
+// --- Constantes del Juego ---
+private const val CASUAL_DELAY = 150L
+private const val TRYHARD_INITIAL_DELAY = 200L
+private const val MIN_DELAY = 50L
+private const val SPEED_INCREASE_PER_POINT = 10L
+private const val WIN_CONDITION_SIZE = 50
+
 @HiltViewModel
 class SnakeViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
@@ -38,7 +45,6 @@ class SnakeViewModel @Inject constructor(
     private var direction = Direction.RIGHT
     private var gameLoopJob: Job? = null
     
-    // CORRECCIÓN: Leer "gameMode", no "mode"
     private val gameMode: Int = savedStateHandle.get<Int>("gameMode") ?: 0 // 0 = Casual, 1 = Tryhard
 
     init {
@@ -84,6 +90,7 @@ class SnakeViewModel @Inject constructor(
     }
 
     private fun moveSnake() {
+        if (_snakeBody.value.isEmpty()) return
         val currentHead = _snakeBody.value.first()
         val newHead = when (direction) {
             Direction.UP -> currentHead.copy(second = currentHead.second - 1)

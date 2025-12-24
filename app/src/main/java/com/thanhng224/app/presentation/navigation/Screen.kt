@@ -14,14 +14,22 @@ sealed class Screen(val route: String, val titleRes: Int, val icon: ImageVector)
     data object Favorites : Screen("favorites", R.string.nav_favorites, Icons.Default.Favorite)
     data object Profile : Screen("profile", R.string.nav_profile, Icons.Default.Person)
     data object Settings : Screen("settings", R.string.nav_settings, Icons.Default.Settings)
-    
-    // Snake: Solo necesita el modo de juego (Casual=0, Tryhard=1)
+
     data object SnakeGame : Screen("snake_game/{gameMode}", R.string.game_snake, Icons.Default.Gamepad) {
         fun createRoute(gameMode: Int) = "snake_game/$gameMode"
     }
-    
-    // Memory: Jugadores, Submodo (Zen/Vidas/Tiempo), Dificultad
+
     data object MemoryGame : Screen("memory_game/{players}/{submode}/{difficulty}", R.string.game_memory, Icons.Default.Star) {
         fun createRoute(players: Int, submode: Int, difficulty: Int) = "memory_game/$players/$submode/$difficulty"
+
+        // CORRECCIÓN: Constantes movidas aquí para un alcance claro y sin ambigüedades.
+        companion object {
+            const val SUBMODE_ZEN = 0
+            const val SUBMODE_ATTEMPTS = 1
+            const val SUBMODE_TIMER = 2
+            const val DIFFICULTY_EASY = 0
+            const val DIFFICULTY_MEDIUM = 1
+            const val DIFFICULTY_HARD = 2
+        }
     }
 }
