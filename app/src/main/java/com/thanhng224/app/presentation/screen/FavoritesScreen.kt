@@ -3,6 +3,7 @@ package com.thanhng224.app.presentation.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,8 +25,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,7 +64,7 @@ fun FavoritesScreen(navController: NavController) {
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
-            title = { Text("Juegos") },
+            title = { Text("Juegos", fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
         )
 
@@ -75,18 +74,27 @@ fun FavoritesScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                GameCard("Snake Game 🐍", "El clásico juego de la serpiente", Icons.Default.Gamepad, Color(0xFF4CAF50)) {
-                    currentFlow = DialogStep.SNAKE_MODE
-                }
+                GameCard(
+                    title = "Snake Game 🐍", 
+                    description = "El clásico juego de la serpiente", 
+                    icon = Icons.Default.Gamepad, 
+                    color = Color(0xFF4CAF50),
+                    onClick = { currentFlow = DialogStep.SNAKE_MODE }
+                )
             }
             item {
-                GameCard("Memory de Nosotros", "Encuentra los pares", Icons.Default.Favorite, Color(0xFFE91E63)) {
-                    currentFlow = DialogStep.PLAYERS
-                }
+                GameCard(
+                    title = "Memory de Nosotros", 
+                    description = "Encuentra los pares", 
+                    icon = Icons.Default.Favorite, 
+                    color = Color(0xFFE91E63),
+                    onClick = { currentFlow = DialogStep.PLAYERS }
+                )
             }
         }
     }
 
+    // --- MANEJO DE DIÁLOGOS (Flow) ---
     when (currentFlow) {
         DialogStep.SNAKE_MODE -> {
             SnakeModeSelectionDialog(
@@ -98,39 +106,54 @@ fun FavoritesScreen(navController: NavController) {
             )
         }
 
+        // Paso 1: Jugadores
         DialogStep.PLAYERS -> {
             SimplePlayerSelectionDialog(
                 onDismiss = { currentFlow = DialogStep.HIDDEN },
-                onSelect = { mode ->
-                    selectedPlayerMode = mode
-                    if (mode == 2) { // Multijugador va directo
-                        navController.navigate(Screen.MemoryGame.createRoute(2, Screen.MemoryGame.SUBMODE_ZEN, Screen.MemoryGame.DIFFICULTY_MEDIUM))
+                onSelect = { players ->
+                    selectedPlayerMode = players
+                    
+                    if (players == 2) {
+                        // MODO MULTIJUGADOR: Acceso directo (sin dificultad ni tipo)
+                        navController.navigate(
+                            Screen.MemoryGame.createRoute(
+                                players = 2,
+                                submode = Screen.MemoryGame.SUBMODE_ZEN, // Default
+                                difficulty = Screen.MemoryGame.DIFFICULTY_EASY // Default
+                            )
+                        )
                         currentFlow = DialogStep.HIDDEN
-                    } else { // Un jugador avanza
+                    } else {
+                        // MODO 1 JUGADOR: Sigue el flujo normal
                         currentFlow = DialogStep.GAME_TYPE
                     }
                 }
             )
         }
 
+        // Paso 2: Modo de Juego
         DialogStep.GAME_TYPE -> {
             GameTypeSelectionDialog(
-                onDismiss = { currentFlow = DialogStep.PLAYERS }, // Volver
+                onDismiss = { currentFlow = DialogStep.PLAYERS },
                 onSelect = { type ->
                     selectedGameType = type
-                    if (type == Screen.MemoryGame.SUBMODE_ZEN) { // Zen va directo
-                        navController.navigate(Screen.MemoryGame.createRoute(1, Screen.MemoryGame.SUBMODE_ZEN, Screen.MemoryGame.DIFFICULTY_MEDIUM))
+                    // Si es Zen (Casual), saltamos selección de dificultad (es único nivel)
+                    if (type == Screen.MemoryGame.SUBMODE_ZEN) {
+                        navController.navigate(Screen.MemoryGame.createRoute(selectedPlayerMode, selectedGameType, Screen.MemoryGame.DIFFICULTY_EASY))
                         currentFlow = DialogStep.HIDDEN
-                    } else { // Otros avanzan a dificultad
+                    } else {
                         currentFlow = DialogStep.DIFFICULTY
                     }
                 }
             )
         }
 
+        // Paso 3: Dificultad (Solo si no es Casual y 1 Jugador)
         DialogStep.DIFFICULTY -> {
             DifficultySelectionDialog(
-                onDismiss = { currentFlow = DialogStep.GAME_TYPE }, // Volver
+                onDismiss = { 
+                    currentFlow = DialogStep.GAME_TYPE 
+                },
                 onSelect = { difficulty ->
                     navController.navigate(Screen.MemoryGame.createRoute(selectedPlayerMode, selectedGameType, difficulty))
                     currentFlow = DialogStep.HIDDEN
@@ -138,16 +161,26 @@ fun FavoritesScreen(navController: NavController) {
             )
         }
         
-        DialogStep.HIDDEN -> { /* No mostrar diálogos */ }
+        DialogStep.HIDDEN -> { /* Nada */ }
     }
 }
+
+// --- COMPONENTES UI REUTILIZABLES ---
 
 @Composable
 fun CustomDialogBase(onDismiss: () -> Unit, title: String, content: @Composable ColumnScope.() -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+        title = { 
+            Text(
+                title, 
+                style = MaterialTheme.typography.headlineSmall, 
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center, 
+                modifier = Modifier.fillMaxWidth()
+            ) 
+        },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 content()
@@ -166,29 +199,29 @@ fun CustomDialogBase(onDismiss: () -> Unit, title: String, content: @Composable 
 
 @Composable
 fun SimplePlayerSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
-    CustomDialogBase(onDismiss = onDismiss, title = "¿Cuántos jugadores?") {
+    CustomDialogBase(onDismiss = onDismiss, title = "¿Cuántos juegan?") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            BigSelectionButton(Modifier.weight(1f), Icons.Default.Person, "1", MaterialTheme.colorScheme.primaryContainer) { onSelect(1) }
-            BigSelectionButton(Modifier.weight(1f), Icons.Default.Person, "2", MaterialTheme.colorScheme.tertiaryContainer) { onSelect(2) }
+            BigSelectionButton(Modifier.weight(1f), Icons.Default.Person, "1 Jugador", MaterialTheme.colorScheme.primaryContainer) { onSelect(1) }
+            BigSelectionButton(Modifier.weight(1f), Icons.Default.Person, "1 VS 1", MaterialTheme.colorScheme.tertiaryContainer) { onSelect(2) }
         }
     }
 }
 
 @Composable
 fun SnakeModeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
-    CustomDialogBase(onDismiss = onDismiss, title = "Modo de Juego") {
-        WideSelectionButton("Casual", null) { onSelect(0) }
+    CustomDialogBase(onDismiss = onDismiss, title = "Modo Snake") {
+        WideSelectionButton("Casual (Lento)", Icons.Default.SelfImprovement) { onSelect(0) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Tryhard", null) { onSelect(1) }
+        WideSelectionButton("Tryhard (Acelera)", Icons.Default.Timer) { onSelect(1) }
     }
 }
 
 @Composable
 fun GameTypeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
-    CustomDialogBase(onDismiss = onDismiss, title = "Estilo de Juego") {
-        WideSelectionButton("Zen (Sin estrés) 🌸", Icons.Default.SelfImprovement) { onSelect(Screen.MemoryGame.SUBMODE_ZEN) }
+    CustomDialogBase(onDismiss = onDismiss, title = "Modo de Juego") {
+        WideSelectionButton("Casual (Sin estrés) 🌸", Icons.Default.SelfImprovement) { onSelect(Screen.MemoryGame.SUBMODE_ZEN) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Por Vidas ❤️", Icons.Default.Favorite) { onSelect(Screen.MemoryGame.SUBMODE_ATTEMPTS) }
+        WideSelectionButton("Vidas (Límite fallos) ❤️", Icons.Default.Favorite) { onSelect(Screen.MemoryGame.SUBMODE_ATTEMPTS) }
         Spacer(modifier = Modifier.height(8.dp))
         WideSelectionButton("Contra Reloj ⏱️", Icons.Default.Timer) { onSelect(Screen.MemoryGame.SUBMODE_TIMER) }
     }
@@ -197,43 +230,53 @@ fun GameTypeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
 @Composable
 fun DifficultySelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
     CustomDialogBase(onDismiss = onDismiss, title = "Dificultad") {
-        WideSelectionButton("Fácil (16 cartas) 🟢", null) { onSelect(Screen.MemoryGame.DIFFICULTY_EASY) }
+        WideSelectionButton("Fácil (Más tiempo/Vidas) 🟢", null) { onSelect(Screen.MemoryGame.DIFFICULTY_EASY) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Medio (20 cartas) 🟡", null) { onSelect(Screen.MemoryGame.DIFFICULTY_MEDIUM) }
+        WideSelectionButton("Medio (Estándar) 🟡", null) { onSelect(Screen.MemoryGame.DIFFICULTY_MEDIUM) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Difícil (24 cartas) 🔴", null) { onSelect(Screen.MemoryGame.DIFFICULTY_HARD) }
+        WideSelectionButton("Difícil (Menos tiempo/Vidas) 🔴", null) { onSelect(Screen.MemoryGame.DIFFICULTY_HARD) }
     }
 }
 
 @Composable
 fun BigSelectionButton(modifier: Modifier = Modifier, icon: ImageVector, text: String, color: Color, onClick: () -> Unit) {
-    Button(
+    Card(
         onClick = onClick,
-        modifier = modifier.height(80.dp),
+        modifier = modifier.height(100.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = color)
+        colors = CardDefaults.cardColors(containerColor = color),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = null, tint = Color.Black.copy(alpha = 0.7f))
-            Text(text, style = MaterialTheme.typography.titleLarge, color = Color.Black.copy(alpha = 0.7f))
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(32.dp), tint = Color.Black.copy(alpha = 0.7f))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black.copy(alpha = 0.7f))
         }
     }
 }
 
 @Composable
 fun WideSelectionButton(text: String, icon: ImageVector?, onClick: () -> Unit) {
-    Button(
+    Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+        modifier = Modifier.fillMaxWidth().height(64.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             if (icon != null) {
                 Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
             }
-            Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
     }
 }
@@ -242,16 +285,23 @@ fun WideSelectionButton(text: String, icon: ImageVector?, onClick: () -> Unit) {
 fun GameCard(title: String, description: String, icon: ImageVector, color: Color, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.width(16.dp))
+        Row(modifier = Modifier.padding(20.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(color.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(30.dp))
+            }
+            Spacer(modifier = Modifier.width(20.dp))
             Column {
-                Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(text = description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(text = description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
         }
     }

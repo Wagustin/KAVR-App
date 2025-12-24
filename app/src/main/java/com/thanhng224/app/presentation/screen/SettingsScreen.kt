@@ -1,8 +1,6 @@
 package com.thanhng224.app.presentation.screen
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,19 +18,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -42,146 +39,217 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.thanhng224.app.presentation.viewmodel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("DEPRECATION") // Suprimir la advertencia de hiltViewModel
 @Composable
-fun SettingsScreen(
-    appViewModel: AppViewModel = hiltViewModel()
-) {
-    // --- ESTADOS (futura conexión a AppPreferences) ---
-    // val achievements by appViewModel.achievements.collectAsState()
-    val easyCompleted = true // Mockup
-    val mediumCompleted = true // Mockup
-    val hardCompleted = false // Mockup
+fun SettingsScreen() {
+    val appViewModel: AppViewModel = hiltViewModel()
+    
+    // ESTADOS (Mockup temporal hasta conectar persistencia real)
+    // En el futuro, estos vendrán de un ViewModel/DataStore
+    val memoryAchievements = listOf(
+        Achievement("Principiante", "Completa Fácil", true),
+        Achievement("Avanzado", "Completa Medio", true),
+        Achievement("Maestro", "Completa Difícil", false),
+        Achievement("Velocista", "Contra Reloj Difícil", false)
+    )
 
-    val allHardCompleted = easyCompleted && mediumCompleted && hardCompleted
+    val snakeAchievements = listOf(
+        Achievement("Gusano", "Puntuación > 10", true),
+        Achievement("Serpiente", "Puntuación > 50", false),
+        Achievement("Anaconda", "Puntuación > 100", false)
+    )
+    
+    val isDarkMode by appViewModel.isDarkMode.collectAsState()
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-    ) {
-        TopAppBar(
-            title = { Text("Logros y Ajustes") },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Configuración y Logros", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-        )
-
+        }
+    ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 80.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(16.dp)
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Sección de Logros
+            // --- SECCIÓN 1: CONFIGURACIÓN GENERAL ---
             item {
+                SectionHeader("Ajustes Generales", Icons.Default.Settings)
+                Spacer(modifier = Modifier.height(8.dp))
+                
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.EmojiEvents, contentDescription = "Logros", tint = Color(0xFFFFD700)) // Dorado
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Desafíos de Memory",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Modo Oscuro", style = MaterialTheme.typography.bodyLarge)
+                            Switch(
+                                checked = isDarkMode,
+                                onCheckedChange = { appViewModel.toggleTheme() }
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Lista de desafíos
-                        AchievementItem("Completar en Fácil", easyCompleted)
-                        AchievementItem("Completar en Medio", mediumCompleted)
-                        AchievementItem("Completar en Difícil", hardCompleted)
+                        // Aquí se pueden agregar más ajustes (Sonido, Idioma, etc.)
                     }
                 }
             }
 
-            // Sección de Modo Secreto
+            // --- SECCIÓN 2: LOGROS (Dividido por Juegos) ---
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SecretModeCard(unlocked = allHardCompleted)
+                SectionHeader("Mis Logros", Icons.Default.EmojiEvents)
             }
             
-            // Aquí se podrían añadir más ajustes en el futuro (logout, etc.)
+            // Logros de Memory
+            item {
+                GameAchievementsCard(
+                    gameName = "Memory",
+                    color = Color(0xFFE91E63), // Pink
+                    achievements = memoryAchievements
+                )
+            }
+            
+            // Logros de Snake
+            item {
+                GameAchievementsCard(
+                    gameName = "Snake",
+                    color = Color(0xFF4CAF50), // Green
+                    achievements = snakeAchievements
+                )
+            }
+            
+            // Espacio final para que no tape el BottomBar
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
+    }
+}
+
+// --- CLASES Y COMPONENTES AUXILIARES ---
+
+data class Achievement(val title: String, val description: String, val isUnlocked: Boolean)
+
+@Composable
+fun SectionHeader(title: String, icon: ImageVector) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+fun GameAchievementsCard(gameName: String, color: Color, achievements: List<Achievement>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column {
+            // Cabecera del Juego
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color.copy(alpha = 0.15f))
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = gameName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+            }
+            
+            // Lista de Logros
+            Column(modifier = Modifier.padding(16.dp)) {
+                achievements.forEachIndexed { index, achievement ->
+                    AchievementRow(achievement, color)
+                    if (index < achievements.lastIndex) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun AchievementItem(text: String, completed: Boolean) {
+fun AchievementRow(achievement: Achievement, activeColor: Color) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 4.dp)
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Checkbox(
-            checked = completed,
-            onCheckedChange = null, // No se puede cambiar manualmente
-            colors = CheckboxDefaults.colors(
-                checkedColor = MaterialTheme.colorScheme.primary,
-                uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            ),
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (completed) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-    }
-}
-
-@Composable
-fun SecretModeCard(unlocked: Boolean) {
-    val goldBrush = Brush.horizontalGradient(listOf(Color(0xFFD4AF37), Color(0xFFFFD700), Color(0xFFD4AF37)))
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize()
-            .border(
-                width = if (unlocked) 2.dp else 1.dp,
-                color = if (unlocked) Color(0xFFFFD700) else MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(16.dp)
-            )
-            .clickable(enabled = unlocked, onClick = { /* TODO: Navegar a modo ultra */ }),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (unlocked) MaterialTheme.colorScheme.surface else Color.Transparent),
-        elevation = CardDefaults.cardElevation(if (unlocked) 8.dp else 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+        // Icono de Estado
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(
+                    if (achievement.isUnlocked) activeColor else Color.Gray.copy(alpha = 0.1f)
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            if (unlocked) {
-                Text(
-                    text = "✨ MODO SECRETO DESBLOQUEADO ✨", 
-                    fontWeight = FontWeight.ExtraBold,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.background(goldBrush)
-                )
-            } else {
-                Icon(Icons.Default.Lock, contentDescription = "Bloqueado", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Completa todos los desafíos en Difícil para desbloquear",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            }
+            Icon(
+                imageVector = if (achievement.isUnlocked) Icons.Default.CheckCircle else Icons.Default.Lock,
+                contentDescription = null,
+                tint = if (achievement.isUnlocked) Color.White else Color.Gray.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        // Textos
+        Column {
+            Text(
+                text = achievement.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (achievement.isUnlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
+            Text(
+                text = achievement.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        if (achievement.isUnlocked) {
+             Icon(
+                 Icons.Default.Star, 
+                 contentDescription = null, 
+                 tint = Color(0xFFFFD700), // Gold
+                 modifier = Modifier.size(16.dp)
+             )
         }
     }
 }

@@ -52,4 +52,11 @@ class AppViewModel @Inject constructor(
             completeOnboardingUseCase()
         }
     }
+    
+    fun toggleTheme() {
+        viewModelScope.launch {
+            val current = isDarkMode.value
+            appPreferences.setDarkMode(!current)
+        }
+    }
 }

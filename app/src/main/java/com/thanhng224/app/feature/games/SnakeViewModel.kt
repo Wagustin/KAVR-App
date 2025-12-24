@@ -15,12 +15,11 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.random.Random
 
-// --- Constantes del Juego ---
-private const val CASUAL_DELAY = 150L
-private const val TRYHARD_INITIAL_DELAY = 200L
-private const val MIN_DELAY = 50L
-private const val SPEED_INCREASE_PER_POINT = 10L
-private const val WIN_CONDITION_SIZE = 50
+// --- AJUSTE DE VELOCIDADES ---
+private const val CASUAL_DELAY = 200L         // Lento y relajante
+private const val TRYHARD_START_DELAY = 150L  // Velocidad media inicial
+private const val TRYHARD_MIN_DELAY = 40L     // Velocidad máxima injugable
+private const val SPEED_STEP = 8L             // Cuánto baja el delay por cada manzana (más alto = acelera antes)
 
 @HiltViewModel
 class SnakeViewModel @Inject constructor(
@@ -45,7 +44,8 @@ class SnakeViewModel @Inject constructor(
     private var direction = Direction.RIGHT
     private var gameLoopJob: Job? = null
     
-    private val gameMode: Int = savedStateHandle.get<Int>("gameMode") ?: 0 // 0 = Casual, 1 = Tryhard
+    // Leemos el modo. 0 = Casual, 1 = Tryhard
+    private val gameMode: Int = savedStateHandle.get<Int>("gameMode") ?: 0
 
     init {
         resetGame()
@@ -53,7 +53,6 @@ class SnakeViewModel @Inject constructor(
 
     fun startGame() {
         if (_gameState.value == GameState.PLAYING) return
-
         resetGame()
         _gameState.value = GameState.PLAYING
         gameLoopJob = viewModelScope.launch {
@@ -62,15 +61,12 @@ class SnakeViewModel @Inject constructor(
     }
 
     fun changeDirection(newDirection: Direction) {
-        if (_gameState.value != GameState.PLAYING) return
-        
         val isOpposite = when (direction) {
             Direction.UP -> newDirection == Direction.DOWN
             Direction.DOWN -> newDirection == Direction.UP
             Direction.LEFT -> newDirection == Direction.RIGHT
             Direction.RIGHT -> newDirection == Direction.LEFT
         }
-
         if (!isOpposite) {
             direction = newDirection
         }
@@ -78,73 +74,69 @@ class SnakeViewModel @Inject constructor(
 
     private suspend fun gameLoop() {
         while (_gameState.value == GameState.PLAYING) {
-            val currentDelay = if (gameMode == 0) {
-                CASUAL_DELAY // Modo Casual
+            val delayTime = if (gameMode == 0) {
+                CASUAL_DELAY
             } else {
-                // Modo Tryhard
-                max(MIN_DELAY, TRYHARD_INITIAL_DELAY - (_score.value * SPEED_INCREASE_PER_POINT))
+                val speedUp = _score.value * SPEED_STEP
+                max(TRYHARD_MIN_DELAY, TRYHARD_START_DELAY - speedUp)
             }
-            delay(currentDelay)
+            
+            delay(delayTime)
             moveSnake()
         }
     }
 
     private fun moveSnake() {
         if (_snakeBody.value.isEmpty()) return
-        val currentHead = _snakeBody.value.first()
+        
+        val head = _snakeBody.value.first()
         val newHead = when (direction) {
-            Direction.UP -> currentHead.copy(second = currentHead.second - 1)
-            Direction.DOWN -> currentHead.copy(second = currentHead.second + 1)
-            Direction.LEFT -> currentHead.copy(first = currentHead.first - 1)
-            Direction.RIGHT -> currentHead.copy(first = currentHead.first + 1)
+            Direction.UP -> Point(head.first, head.second - 1)
+            Direction.DOWN -> Point(head.first, head.second + 1)
+            Direction.LEFT -> Point(head.first - 1, head.second)
+            Direction.RIGHT -> Point(head.first + 1, head.second)
         }
 
-        if (isCollision(newHead)) {
-            endGame(didWin = false)
+        // Colisión Paredes o Cuerpo
+        if (newHead.first !in 0 until GRID_SIZE || 
+            newHead.second !in 0 until GRID_SIZE || 
+            _snakeBody.value.contains(newHead)) {
+            endGame()
             return
         }
 
-        val newBody = mutableListOf(newHead).apply { addAll(_snakeBody.value) }
+        val newBody = _snakeBody.value.toMutableList()
+        newBody.add(0, newHead)
 
         if (newHead == _food.value) {
             _score.update { it + 1 }
             generateFood()
-            if (newBody.size > WIN_CONDITION_SIZE) {
-                endGame(didWin = true)
-                return
-            }
         } else {
-            newBody.removeLast()
+            newBody.removeAt(newBody.size - 1)
         }
-
         _snakeBody.value = newBody
     }
 
-    private fun isCollision(head: Point): Boolean {
-        return head.first < 0 || head.first >= GRID_SIZE || head.second < 0 || head.second >= GRID_SIZE || _snakeBody.value.contains(head)
+    private fun generateFood() {
+        var newFood: Point
+        do {
+            newFood = Point(Random.nextInt(GRID_SIZE), Random.nextInt(GRID_SIZE))
+        } while (_snakeBody.value.contains(newFood))
+        _food.value = newFood
     }
-    
-    private fun endGame(didWin: Boolean) {
+
+    private fun endGame(win: Boolean = false) {
         gameLoopJob?.cancel()
-        _gameState.value = if (didWin) GameState.WON else GameState.GAMEOVER
+        _gameState.value = if (win) GameState.WON else GameState.GAMEOVER
         viewModelScope.launch {
             appPreferences.updateHighScore(_score.value)
         }
     }
 
-    private fun generateFood() {
-        var newFoodPosition: Point
-        do {
-            newFoodPosition = Point(Random.nextInt(GRID_SIZE), Random.nextInt(GRID_SIZE))
-        } while (_snakeBody.value.contains(newFoodPosition))
-        _food.value = newFoodPosition
-    }
-
     private fun resetGame() {
-        gameLoopJob?.cancel()
         direction = Direction.RIGHT
         _score.value = 0
-        _snakeBody.value = listOf(Point(5, 5), Point(4, 5), Point(3, 5))
+        _snakeBody.value = listOf(Point(5, 10), Point(4, 10), Point(3, 10))
         generateFood()
         _gameState.value = GameState.IDLE
     }
