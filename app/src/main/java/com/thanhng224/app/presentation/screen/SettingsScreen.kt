@@ -1,7 +1,6 @@
 package com.thanhng224.app.presentation.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,25 +42,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.thanhng224.app.presentation.viewmodel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
-    val appViewModel: AppViewModel = hiltViewModel()
+    val appViewModel: AppViewModel = viewModel()
     
     // ESTADOS (Mockup temporal hasta conectar persistencia real)
     // En el futuro, estos vendrán de un ViewModel/DataStore
     val memoryAchievements = listOf(
-        Achievement("Principiante", "Completa Fácil", true),
-        Achievement("Avanzado", "Completa Medio", true),
+        Achievement("Principiante", "Completa Fácil", false),
+        Achievement("Avanzado", "Completa Medio", false),
         Achievement("Maestro", "Completa Difícil", false),
         Achievement("Velocista", "Contra Reloj Difícil", false)
     )
 
     val snakeAchievements = listOf(
-        Achievement("Gusano", "Puntuación > 10", true),
+        Achievement("Gusano", "Puntuación > 10", false),
         Achievement("Serpiente", "Puntuación > 50", false),
         Achievement("Anaconda", "Puntuación > 100", false)
     )

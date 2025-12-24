@@ -2,6 +2,7 @@ package com.thanhng224.app.presentation.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.util.lerp
 import kotlin.math.PI
@@ -30,55 +32,81 @@ fun FlowerAnimation(
     LaunchedEffect(Unit) {
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 2500, easing = FastOutSlowInEasing)
+            animationSpec = tween(durationMillis = 2000, easing = LinearEasing) // Más fluido
         )
         onAnimationFinished()
     }
 
-    // Flower Particles
-    val particles = remember { List(15) { FlowerParticle() } }
+    // Aumentamos partículas y añadimos variedad de "flores pequeñas"
+    val particles = remember { List(40) { FlowerParticle() } } // De 15 a 40
+    val smallFlowers = remember { List(12) { SmallFlowerParticle() } } // Nuevas flores orbitando
     
     Canvas(modifier = modifier.fillMaxSize()) {
         val centerX = size.width / 2
         val centerY = size.height / 2
         
-        // Draw expanding background circle (Blue/Cyan gradient feel)
+        // Fondo expansivo más sutil
         drawCircle(
-            color = Color(0xFF3B82F6).copy(alpha = (0.2f * (1 - progress.value)).coerceIn(0f, 1f)),
-            radius = size.width * progress.value * 1.5f,
+            color = Color(0xFF9C27B0).copy(alpha = (0.15f * (1 - progress.value)).coerceIn(0f, 1f)),
+            radius = size.width * progress.value * 2f,
             center = Offset(centerX, centerY)
         )
 
-        // Fade out flower near end
-        val flowerAlpha = if (progress.value > 0.8f) {
-            ((1f - progress.value) * 5f).coerceIn(0f, 1f)
+        val animationValue = progress.value
+        
+        // Flor Principal
+        val mainFlowerAlpha = if (animationValue > 0.85f) {
+            ((1f - animationValue) * 6f).coerceIn(0f, 1f)
         } else {
             1f
         }
 
-        if (flowerAlpha > 0f) {
+        if (mainFlowerAlpha > 0f) {
+            // Rotación más suave y escala elástica
+            val scale = if (animationValue < 0.5f) animationValue * 2f else 1f + (animationValue - 0.5f) * 0.5f
+            
             withTransform({
-                rotate(degrees = progress.value * 360f, pivot = Offset(centerX, centerY))
-                scale(scaleX = progress.value, scaleY = progress.value, pivot = Offset(centerX, centerY))
+                rotate(degrees = animationValue * 180f, pivot = Offset(centerX, centerY))
+                scale(scaleX = scale, scaleY = scale, pivot = Offset(centerX, centerY))
             }) {
                 drawFlower(
                     center = Offset(centerX, centerY),
-                    radius = 100f,
-                    petalColor = Color(0xFF06B6D4).copy(alpha = flowerAlpha), // Cyan
-                    centerColor = Color(0xFF3B82F6).copy(alpha = flowerAlpha)  // Blue
+                    radius = 120f,
+                    petalColor = Color(0xFF00E5FF).copy(alpha = mainFlowerAlpha), // Cyan
+                    centerColor = Color(0xFF9C27B0).copy(alpha = mainFlowerAlpha)  // Purple
                 )
             }
         }
 
-        // Draw floating particles
+        // Flores pequeñas satélite que explotan hacia afuera
+        smallFlowers.forEach { flower ->
+            val dist = lerp(0f, size.width * 0.8f, animationValue * flower.speed)
+            val x = centerX + (cos(flower.angle) * dist).toFloat()
+            val y = centerY + (sin(flower.angle) * dist).toFloat()
+            
+            // Rotan sobre sí mismas mientras viajan
+            withTransform({
+                rotate(degrees = animationValue * 720f * flower.rotationDir, pivot = Offset(x, y))
+                scale(scaleX = animationValue, scaleY = animationValue, pivot = Offset(x, y))
+            }) {
+                drawFlower(
+                    center = Offset(x, y),
+                    radius = flower.size,
+                    petalColor = flower.color.copy(alpha = (1 - animationValue).coerceIn(0f, 1f)),
+                    centerColor = Color.White.copy(alpha = (1 - animationValue).coerceIn(0f, 1f))
+                )
+            }
+        }
+
+        // Partículas flotantes (brillos)
         particles.forEach { particle ->
-            val currentRadius = lerp(0f, size.width, progress.value * particle.speed)
+            val currentRadius = lerp(0f, size.width * 1.2f, animationValue * particle.speed)
             val x = centerX + (cos(particle.angle) * currentRadius).toFloat()
             val y = centerY + (sin(particle.angle) * currentRadius).toFloat()
             
             drawCircle(
-                color = particle.color.copy(alpha = (1 - progress.value).coerceIn(0f, 1f)),
-                radius = particle.size,
+                color = particle.color.copy(alpha = (1 - animationValue).coerceIn(0f, 1f)),
+                radius = particle.size * (1 - animationValue * 0.5f), // Se hacen un poco más pequeñas
                 center = Offset(x, y)
             )
         }
@@ -86,7 +114,7 @@ fun FlowerAnimation(
 }
 
 private fun DrawScope.drawFlower(center: Offset, radius: Float, petalColor: Color, centerColor: Color) {
-    val petalCount = 6
+    val petalCount = 8 // Más pétalos para que se vea más tupida
     val angleStep = (2 * PI) / petalCount
     
     // Draw Petals
@@ -113,11 +141,22 @@ private fun DrawScope.drawFlower(center: Offset, radius: Float, petalColor: Colo
 
 private data class FlowerParticle(
     val angle: Double = Random.nextDouble() * 2 * PI,
-    val speed: Float = Random.nextFloat() * 0.5f + 0.5f,
-    val size: Float = Random.nextFloat() * 10f + 5f,
+    val speed: Float = Random.nextFloat() * 0.8f + 0.4f, // Más rápidas
+    val size: Float = Random.nextFloat() * 8f + 3f,
     val color: Color = listOf(
-        Color(0xFF3B82F6), // Blue
-        Color(0xFF06B6D4), // Cyan
-        Color(0xFF60A5FA)  // Light Blue
+        Color(0xFFE040FB), // Purple Accent
+        Color(0xFF18FFFF), // Cyan Accent
+        Color(0xFFFFFFFF)  // White
+    ).random()
+)
+
+private data class SmallFlowerParticle(
+    val angle: Double = Random.nextDouble() * 2 * PI,
+    val speed: Float = Random.nextFloat() * 0.6f + 0.6f,
+    val size: Float = Random.nextFloat() * 20f + 15f,
+    val rotationDir: Int = if (Random.nextBoolean()) 1 else -1,
+    val color: Color = listOf(
+        Color(0xFFBA68C8), // Light Purple
+        Color(0xFF4DD0E1)  // Light Cyan
     ).random()
 )
