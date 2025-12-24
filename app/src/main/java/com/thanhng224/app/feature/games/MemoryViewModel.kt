@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,10 +21,11 @@ data class MemoryUiState(
     val currentPlayer: Int = 1,
     val scoreP1: Int = 0,
     val scoreP2: Int = 0,
-    val remainingAttempts: Int = 0,
-    val remainingTime: Long = 0,
+    val remainingAttempts: Int = 0, // Para modo Vidas
+    val remainingTime: Long = 0,    // Para modo Tiempo (segundos)
     val isGameOver: Boolean = false,
-    val winnerMessage: String = ""
+    val isWin: Boolean = false,
+    val gameResultText: String = ""
 )
 
 @HiltViewModel
@@ -35,6 +37,9 @@ class MemoryViewModel @Inject constructor(
     val state = _state.asStateFlow()
 
     private var flippedCardId: Int? = null
+    private var timerJob: Job? = null
+
+    // Paleta de 16 colores base
     private val colors = listOf(
         Color.Red, Color.Blue, Color.Green, Color.Yellow, Color.Cyan, Color.Magenta,
         Color(0xFFFF9800), Color(0xFF795548), Color(0xFF9C27B0), Color(0xFF607D8B),
@@ -42,113 +47,160 @@ class MemoryViewModel @Inject constructor(
         Color(0xFFFFEB3B), Color(0xFF000000)
     )
 
-    // Argumentos guardados para reiniciar
-    private val argPlayers: Int = savedStateHandle.get<Int>("players") ?: 1
-    private val argSubmode: Int = savedStateHandle.get<Int>("submode") ?: 0
-    private val argDiff: Int = savedStateHandle.get<Int>("difficulty") ?: 0
+    // Lectura segura de argumentos
+    private val argPlayers = savedStateHandle.get<Int>("players") ?: 1
+    private val argSubmode = savedStateHandle.get<Int>("submode") ?: 0 // 0=Zen, 1=Vidas, 2=Tiempo
+    private val argDiff = savedStateHandle.get<Int>("difficulty") ?: 0 // 0=Easy, 1=Med, 2=Hard
 
     init {
         initGame()
     }
 
     fun initGame() {
-        // Generar 16 pares (32 cartas) para llenar una pantalla 4x8
-        val selectedColors = (colors + colors).shuffled().take(16) // Asegura suficientes colores
-        val gameColors = (selectedColors + selectedColors).shuffled()
+        timerJob?.cancel()
         
-        val cards = gameColors.mapIndexed { index, color ->
-            MemoryCard(id = index, color = color)
+        // 1. Generar 24 cartas (12 pares) para grid 4x6
+        val selectedColors = colors.shuffled().take(12) 
+        val gameCards = (selectedColors + selectedColors).shuffled().mapIndexed { index, color ->
+            MemoryCard(index, color)
         }
 
-        // Configurar dificultad (intentos/tiempo) según argDiff...
-        // (Por simplicidad en este prompt, ponemos valores base, puedes expandir esto luego)
-        val initialAttempts = if(argSubmode == 1) (if(argDiff == 0) 15 else 10) else 0
+        // 2. Configurar Reglas según Dificultad
+        var initialLives = 0
+        var initialTime = 0L
+
+        if (argSubmode == 1) { // Vidas
+            initialLives = when(argDiff) {
+                0 -> 15 // Fácil
+                1 -> 10 // Medio
+                else -> 5 // Difícil
+            }
+        } else if (argSubmode == 2) { // Tiempo
+            initialTime = when(argDiff) {
+                0 -> 180L // 3 min
+                1 -> 120L // 2 min
+                else -> 60L // 1 min
+            }
+            startTimer(initialTime)
+        }
 
         _state.update { 
             MemoryUiState(
-                cards = cards, 
+                cards = gameCards,
                 isMultiplayer = argPlayers == 2,
-                remainingAttempts = initialAttempts,
-                isGameOver = false
-            ) 
+                remainingAttempts = initialLives,
+                remainingTime = initialTime,
+                isGameOver = false,
+                isWin = false
+            )
         }
         flippedCardId = null
     }
 
+    private fun startTimer(seconds: Long) {
+        timerJob = viewModelScope.launch {
+            var timeLeft = seconds
+            while (timeLeft > 0 && !_state.value.isGameOver) {
+                delay(1000)
+                timeLeft--
+                _state.update { it.copy(remainingTime = timeLeft) }
+            }
+            if (timeLeft == 0L && !_state.value.isWin) {
+                endGame(win = false, msg = "¡Se acabó el tiempo! ⏳")
+            }
+        }
+    }
+
     fun onCardClicked(cardId: Int) {
-        val currentCards = _state.value.cards.toMutableList()
-        val card = currentCards.find { it.id == cardId } ?: return
+        if (_state.value.isGameOver) return
+        
+        val currentList = _state.value.cards.toMutableList()
+        val card = currentList.find { it.id == cardId } ?: return
 
-        if (card.isFaceUp || card.isMatched || _state.value.isGameOver) return
+        if (card.isFaceUp || card.isMatched) return
 
-        // Voltear carta
+        // Voltear
         card.isFaceUp = true
-        _state.update { it.copy(cards = currentCards) }
+        _state.update { it.copy(cards = currentList) }
 
         if (flippedCardId == null) {
-            // Primera carta
             flippedCardId = cardId
         } else {
-            // Segunda carta
-            val firstCardId = flippedCardId!!
-            val firstCard = currentCards.find { it.id == firstCardId }!!
+            val firstId = flippedCardId!!
+            val firstCard = currentList.find { it.id == firstId }!!
 
             if (firstCard.color == card.color) {
-                // MATCH!
+                // Acierto
                 firstCard.isMatched = true
                 card.isMatched = true
                 handleMatch()
                 flippedCardId = null
+                checkWin()
             } else {
-                // NO MATCH
+                // Fallo
                 viewModelScope.launch {
-                    delay(1000)
+                    delay(800)
                     firstCard.isFaceUp = false
                     card.isFaceUp = false
-                    handleMismatch()
-                    _state.update { it.copy(cards = currentCards) } // Refrescar UI
+                    handleMistake()
+                    _state.update { it.copy(cards = currentList) }
                     flippedCardId = null
                 }
             }
         }
-        checkWinCondition()
     }
 
     private fun handleMatch() {
-        _state.update { state ->
-            if (state.isMultiplayer) {
-                if (state.currentPlayer == 1) state.copy(scoreP1 = state.scoreP1 + 1)
-                else state.copy(scoreP2 = state.scoreP2 + 1)
-            } else {
-                state // Lógica single player score
+        if (_state.value.isMultiplayer) {
+            _state.update { 
+                if (it.currentPlayer == 1) it.copy(scoreP1 = it.scoreP1 + 1)
+                else it.copy(scoreP2 = it.scoreP2 + 1)
             }
         }
     }
 
-    private fun handleMismatch() {
-        _state.update { state ->
-            if (state.isMultiplayer) {
-                state.copy(currentPlayer = if (state.currentPlayer == 1) 2 else 1)
+    private fun handleMistake() {
+        _state.update { 
+            if (it.isMultiplayer) {
+                it.copy(currentPlayer = if (it.currentPlayer == 1) 2 else 1)
             } else {
-                if (argSubmode == 1 && state.remainingAttempts > 0) { // Modo Intentos
-                     val newAttempts = state.remainingAttempts - 1
-                     if (newAttempts == 0) state.copy(remainingAttempts = 0, isGameOver = true, winnerMessage = "¡Te quedaste sin intentos! 😢")
-                     else state.copy(remainingAttempts = newAttempts)
-                } else state
+                // Restar vida si aplica
+                if (argSubmode == 1) {
+                    val newLives = it.remainingAttempts - 1
+                    if (newLives <= 0) endGame(false, "¡Sin vidas! 💔")
+                    it.copy(remainingAttempts = newLives)
+                } else it
             }
         }
     }
 
-    private fun checkWinCondition() {
+    private fun checkWin() {
         if (_state.value.cards.all { it.isMatched }) {
             val msg = if (_state.value.isMultiplayer) {
-                if (_state.value.scoreP1 > _state.value.scoreP2) "¡Ganó Jugador 1! 🏆"
-                else if (_state.value.scoreP2 > _state.value.scoreP1) "¡Ganó Jugador 2! 🏆"
-                else "¡Empate! 🤝"
+                val p1 = _state.value.scoreP1
+                val p2 = _state.value.scoreP2
+                if (p1 > p2) "¡Gana Jugador 1! 🏆" else if (p2 > p1) "¡Gana Jugador 2! 🏆" else "¡Empate! 🤝"
             } else {
-                "¡Ganaste! 🎉"
+                "¡Completado! 🎉"
             }
-            _state.update { it.copy(isGameOver = true, winnerMessage = msg) }
+            endGame(true, msg)
         }
     }
+
+    private fun endGame(win: Boolean, msg: String) {
+        timerJob?.cancel()
+        _state.update { it.copy(isGameOver = true, isWin = win, gameResultText = msg) }
+    }
+    
+    // Helper para mostrar texto en UI
+    val displayValue: String
+        get() = when(argSubmode) {
+            1 -> "Vidas: ${_state.value.remainingAttempts}"
+            2 -> {
+                val m = _state.value.remainingTime / 60
+                val s = _state.value.remainingTime % 60
+                "%02d:%02d".format(m, s)
+            }
+            else -> "Zen Mode 🧘"
+        }
 }
