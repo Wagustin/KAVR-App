@@ -50,6 +50,7 @@ import androidx.navigation.navArgument
 import com.thanhng224.app.feature.auth.presentation.ui.LoginScreen
 import com.thanhng224.app.feature.games.MemoryGameScreen
 import com.thanhng224.app.feature.games.SnakeGameScreen
+import com.thanhng224.app.feature.memories.MemoriesScreen
 import com.thanhng224.app.feature.onboarding.presentation.ui.OnboardingScreen
 import com.thanhng224.app.feature.product.presentation.ui.HomeScreen
 import com.thanhng224.app.presentation.navigation.Screen
@@ -126,12 +127,13 @@ fun App(
                                 }
                             )
                         }
-                        composable(Screen.Home.route) { HomeScreen() }
+                        composable(Screen.Home.route) { HomeScreen(navController) }
                         composable(Screen.Favorites.route) { FavoritesScreen(navController) }
                         composable(Screen.Profile.route) { ProfileScreen() }
                         composable(Screen.Settings.route) {
                             SettingsScreen()
                         }
+                        composable(Screen.Memories.route) { MemoriesScreen(navController) }
                         
                         // CORRECCIÓN: Rutas de juegos con argumentos actualizados
                         composable(
@@ -217,12 +219,14 @@ private fun FloatingNavBar(
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                            if (currentDestination?.route != screen.route) {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
                         },
                         interactionSource = interactionSource,

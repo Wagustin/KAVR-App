@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.thanhng224.app.feature.games
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -32,7 +34,6 @@ import androidx.navigation.NavController
 fun MemoryGameScreen(
     navController: NavController
 ) {
-    // Movemos el ViewModel dentro del cuerpo para evitar advertencias de parámetros por defecto
     val viewModel: MemoryViewModel = hiltViewModel()
     val state by viewModel.state.collectAsState()
 

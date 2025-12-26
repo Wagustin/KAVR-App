@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.thanhng224.app.presentation.screen
 
 import androidx.compose.foundation.background
@@ -42,13 +44,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.thanhng224.app.presentation.viewmodel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
-    val appViewModel: AppViewModel = viewModel()
+    // CORRECCIÓN: Usar hiltViewModel() en lugar de viewModel() para inyección de Hilt correcta
+    val appViewModel: AppViewModel = hiltViewModel()
     
     // ESTADOS (Mockup temporal hasta conectar persistencia real)
     // En el futuro, estos vendrán de un ViewModel/DataStore
