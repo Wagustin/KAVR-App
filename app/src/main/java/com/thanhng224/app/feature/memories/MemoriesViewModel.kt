@@ -19,16 +19,26 @@ class MemoriesViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun loadPhotos() {
-        // LISTA DE FOTOS PRE-CARGADAS
-        // NOTA: Asegúrate de tener imágenes en res/drawable llamadas us_1, us_2, etc.
-        // Si no existen, usa iconos del sistema temporalmente para evitar errores de compilación.
+        // NOTA IMPORTANTE PARA EL USUARIO:
+        // Asegúrate de haber renombrado tus archivos en res/drawable a minúsculas
+        // Ejemplo: img_0707.jpg -> img_0707.jpg
+        
         val tempList = listOf(
-            MemoryPhoto(1, R.drawable.ic_launcher_background, "El comienzo ❤️"), // Cambiar por R.drawable.us_1
-            MemoryPhoto(2, R.drawable.ic_launcher_foreground, "Esa vez en el parque"), // Cambiar por R.drawable.us_2
-            MemoryPhoto(3, R.drawable.ic_launcher_background, "Tu sonrisa"),
-            MemoryPhoto(4, R.drawable.ic_launcher_foreground, "Cumpleaños feliz"),
-            MemoryPhoto(5, R.drawable.ic_launcher_background, "Viaje juntos"),
-            MemoryPhoto(6, R.drawable.ic_launcher_foreground, "Cena romántica")
+            // Usando los nombres de archivo que mostraste en la captura (convertidos a minúsculas)
+            MemoryPhoto(1, R.drawable.img_0707, "Recuerdo 1"),
+            MemoryPhoto(2, R.drawable.img_0847, "Recuerdo 2"),
+            MemoryPhoto(3, R.drawable.img_1025, "Recuerdo 3"),
+            MemoryPhoto(4, R.drawable.img_1045, "Recuerdo 4"),
+            MemoryPhoto(5, R.drawable.img_1048, "Recuerdo 5"),
+            MemoryPhoto(6, R.drawable.img_1508, "Recuerdo 6"),
+            MemoryPhoto(7, R.drawable.img_1812, "Recuerdo 7"),
+            MemoryPhoto(8, R.drawable.img_1978, "Recuerdo 8"),
+            MemoryPhoto(9, R.drawable.img_1981, "Recuerdo 9"),
+            MemoryPhoto(10, R.drawable.img_2136, "Recuerdo 10"),
+            MemoryPhoto(11, R.drawable.img_2137, "Recuerdo 11"),
+            MemoryPhoto(12, R.drawable.img_2149, "Recuerdo 12"),
+            MemoryPhoto(13, R.drawable.kitkatq1, "KitKat 1"),
+            MemoryPhoto(14, R.drawable.kitkatq2, "KitKat 2")
         )
         _photos.value = tempList
     }
