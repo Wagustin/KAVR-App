@@ -1,26 +1,30 @@
-@file:Suppress("DEPRECATION")
-
 package com.thanhng224.app.feature.product.presentation.ui
 
 import android.graphics.Paint
 import android.graphics.Typeface
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -31,23 +35,12 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.thanhng224.app.feature.memories.MemoriesViewModel
-import com.thanhng224.app.feature.memories.MemoryPhoto
-import com.thanhng224.app.presentation.ui.FlowerAnimation
+import com.thanhng224.app.presentation.navigation.Screen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlin.random.Random
 
-// Definición de colores
-val DarkCyanColor = Color(0xFF006064) // Cian Oscuro / Azul Petróleo
-val DarkBlueColor = Color(0xFF1A237E) // Azul Oscuro Profundo
-val BorderColor = DarkCyanColor // Usaremos este para los bordes
-
-// Forma de Diamante (Rombo)
-val DiamondShape = GenericShape { size, _ ->
-    moveTo(size.width / 2f, 0f) // Arriba centro
-    lineTo(size.width, size.height / 2f) // Derecha centro
-    lineTo(size.width / 2f, size.height) // Abajo centro
-    lineTo(0f, size.height / 2f) // Izquierda centro
-    close()
-}
+val GoldColor = Color(0xFFFFD700)
 
 @Composable
 fun HomeScreen(
@@ -55,236 +48,174 @@ fun HomeScreen(
     memoriesViewModel: MemoriesViewModel = hiltViewModel()
 ) {
     val photos by memoriesViewModel.photos.collectAsState()
-    var showAnimation by remember { mutableStateOf(false) }
+    val scrollState = rememberLazyStaggeredGridState()
 
-    // Ciclo automático para mezclar fotos (Motor Dinámico)
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(5000) // Cambia las fotos cada 5 segundos
-            memoriesViewModel.shufflePhotos()
+    // --- MOTOR DE SCROLL OPTIMIZADO PARA GAMA BAJA ---
+    LaunchedEffect(photos) {
+        if (photos.isNotEmpty()) {
+            delay(1000) // Pequeña pausa inicial
+            while (isActive) {
+                // Truco Anti-Lag: Mover más distancia (2px) pero con menos frecuencia (60ms)
+                // Esto le da "respiro" al procesador entre cada cuadro de animación.
+                scrollState.scrollBy(2f) 
+                delay(60) 
+            }
         }
     }
 
-    // Contenedor principal
+    // Contenedor que llena la pantalla y bloquea clicks (Escudo)
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .clickable { showAnimation = true } // Al hacer click, lanza la animación
+            .background(Color.Black)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                // Al hacer click en cualquier lado, entramos al collage completo
+                navController.navigate(Screen.Memories.route)
+            }
     ) {
         if (photos.isNotEmpty()) {
-            // 1. Fondo de Collage Geométrico con Transición Suave
-            Crossfade(
-                targetState = photos, 
-                animationSpec = tween(durationMillis = 1500),
-                label = "BackgroundAnimation"
-            ) { currentPhotos ->
-                GeometricCollageBackground(photos = currentPhotos)
+            // 1. EL MOSAICO DE FONDO
+            LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(3), // 3 Columnas se ve mejor
+                state = scrollState,
+                userScrollEnabled = false,
+                verticalItemSpacing = 4.dp,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.55f) // Oscurecido para resaltar texto
+            ) {
+                // Lista repetida para efecto infinito (tamaño controlado para no saturar RAM)
+                val infiniteList = List(15) { photos }.flatten()
+                items(infiniteList) { photo ->
+                    val randomHeight = remember(photo) { Random.nextInt(160, 260).dp }
+                    Image(
+                        painter = painterResource(id = photo.resId),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(randomHeight)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                }
             }
 
-            // 2. Diamante Central (Rombo) con Fotos adentro
-            // Usamos un Box sin rotación pero con clip en forma de diamante para que las fotos se vean rectas
+            // 2. VINETA NEGRA (Sombra en los bordes)
             Box(
                 modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.6f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.6f)
+                            )
+                        )
+                    )
+            )
+
+            // 3. TEXTO CENTRAL GIGANTE
+            Column(
+                modifier = Modifier
                     .align(Alignment.Center)
-                    .size(350.dp) // Hacemos el diamante un poco más grande
-                    .border(6.dp, BorderColor, DiamondShape) // Borde con forma de diamante
-                    .clip(DiamondShape) // Recortamos el contenido en forma de diamante
-                    .background(Color.White),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Dentro del rombo también mostramos 4 fotos (como afuera)
-                // Usamos las siguientes 4 fotos de la lista mezclada
-                val innerPhotos = if (photos.size >= 8) photos.subList(4, 8) else photos.take(4)
-
-                // Fondo de fotos interno (Recto, sin rotar)
-                GeometricCollageBackground(photos = innerPhotos, showOverlay = false)
-
-                // Cruz divisoria del rombo (Vertical y Horizontal)
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val strokeWidth = 4.dp.toPx()
-                    // Vertical
-                    drawLine(
-                        color = BorderColor,
-                        start = Offset(size.width / 2, 0f),
-                        end = Offset(size.width / 2, size.height),
-                        strokeWidth = strokeWidth
-                    )
-                    // Horizontal
-                    drawLine(
-                        color = BorderColor,
-                        start = Offset(0f, size.height / 2),
-                        end = Offset(size.width, size.height / 2),
-                        strokeWidth = strokeWidth
-                    )
-                }
-
-                // Texto SUPERPUESTO
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    ElegantText(
-                        text = "Feliz Cumpleaños\nMi Amor",
-                        modifier = Modifier
-                    )
-                }
-            }
-        } else {
-            // Placeholder
-            Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) {
-                Text("Cargando recuerdos...", color = Color.White)
-            }
-        }
-        
-        // 3. Capa de animación de flores (se superpone cuando está activa)
-        if (showAnimation) {
-            FlowerAnimation(
-                modifier = Modifier.fillMaxSize(),
-                onAnimationFinished = {
-                    showAnimation = false
-                }
-            )
-        }
-    }
-}
-
-@Composable
-fun GeometricCollageBackground(photos: List<MemoryPhoto>, showOverlay: Boolean = true) {
-    // Un grid simple de 2x2
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Fila Superior
-        Row(modifier = Modifier.weight(1f)) {
-            CollageImageItem(
-                photo = photos.getOrNull(0),
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                showOverlay = showOverlay
-            )
-            CollageImageItem(
-                photo = photos.getOrNull(1),
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                showOverlay = showOverlay
-            )
-        }
-        // Fila Inferior
-        Row(modifier = Modifier.weight(1f)) {
-            CollageImageItem(
-                photo = photos.getOrNull(2),
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                showOverlay = showOverlay
-            )
-            CollageImageItem(
-                photo = photos.getOrNull(3),
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                showOverlay = showOverlay
-            )
-        }
-    }
-    
-    // Líneas divisorias (Cruz) para el fondo principal
-    if (showOverlay) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 8.dp.toPx()
-            // Línea vertical
-            drawLine(
-                color = BorderColor,
-                start = Offset(size.width / 2, 0f),
-                end = Offset(size.width / 2, size.height),
-                strokeWidth = strokeWidth
-            )
-            // Línea horizontal
-            drawLine(
-                color = BorderColor,
-                start = Offset(0f, size.height / 2),
-                end = Offset(size.width, size.height / 2),
-                strokeWidth = strokeWidth
-            )
-        }
-    }
-}
-
-@Composable
-fun CollageImageItem(photo: MemoryPhoto?, modifier: Modifier, showOverlay: Boolean = true) {
-    Box(modifier = modifier) {
-        if (photo != null) {
-            Image(
-                painter = painterResource(id = photo.resId),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-            // Overlay sutil para el fondo, para que el rombo central destaque más
-            if (showOverlay) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f))
+                LuxuryText(text = "Feliz", fontSize = 65f)
+                LuxuryText(text = "Cumpleaños", fontSize = 65f)
+                Spacer(modifier = Modifier.height(16.dp))
+                LuxuryText(text = "Mi Amor", fontSize = 90f) // GIGANTE
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    text = "(Toca para ver nuestros recuerdos)",
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
+
         } else {
-            Box(modifier = Modifier.fillMaxSize().background(Color.LightGray))
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Cargando...", color = Color.White)
+            }
         }
     }
 }
 
 @Composable
-fun ElegantText(text: String, modifier: Modifier = Modifier) {
+fun LuxuryText(text: String, fontSize: Float) {
     val context = LocalContext.current
     val density = LocalDensity.current
 
+    // Carga de fuente segura: Evita error de compilación si no existe R.font
     val customTypeface = remember {
         try {
+            @Suppress("DiscouragedApi") // Se suprime warning ya que es la única forma dinámica segura
             val fontId = context.resources.getIdentifier("mi_letra_elegante", "font", context.packageName)
             if (fontId != 0) {
                 ResourcesCompat.getFont(context, fontId)
             } else {
-                Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC)
+                Typeface.DEFAULT_BOLD
             }
-        } catch (e: Exception) {
-            Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC)
+        } catch (_: Exception) {
+            Typeface.DEFAULT_BOLD
         }
     }
 
-    // TAMAÑO DE TEXTO MUY GRANDE
-    val textSizePx = with(density) { 80.sp.toPx() } 
-    val strokeWidthPx = with(density) { 3.dp.toPx() }
+    val textSizePx = with(density) { fontSize.sp.toPx() }
+    val strokeWidthPx = with(density) { (fontSize * 0.04f).dp.toPx() } // Borde proporcional
 
+    // PINTURAS (Paint) optimizadas se crean una sola vez con 'remember'
+    
+    // 1. Sombra Negra Fuerte (Para legibilidad extrema)
+    val shadowPaint = remember {
+        Paint().apply {
+            typeface = customTypeface
+            color = Color.Transparent.toArgb() // El color base no importa, solo la sombra
+            style = Paint.Style.FILL
+            setShadowLayer(20f, 0f, 0f, Color.Black.toArgb()) // Radio de sombra grande
+        }
+    }
+
+    // 2. Borde Dorado
     val strokePaint = remember {
         Paint().apply {
             typeface = customTypeface
-            color = BorderColor.toArgb() // Borde del texto igual al de los marcos
+            color = GoldColor.toArgb()
             style = Paint.Style.STROKE
             strokeWidth = strokeWidthPx
             isAntiAlias = true
-            setShadowLayer(10f, 0f, 0f, Color.White.toArgb()) // Sombra blanca para resaltar
-            textAlign = Paint.Align.CENTER 
         }
     }
 
+    // 3. Relleno Blanco
     val fillPaint = remember {
         Paint().apply {
             typeface = customTypeface
-            color = Color.White.toArgb() // Texto blanco
+            color = android.graphics.Color.WHITE
             style = Paint.Style.FILL
             isAntiAlias = true
-            setShadowLayer(12f, 0f, 0f, Color.Black.copy(alpha=0.6f).toArgb()) // Sombra oscura de fondo
-            textAlign = Paint.Align.CENTER
         }
     }
 
-    androidx.compose.foundation.Canvas(modifier = modifier.fillMaxWidth().height(400.dp)) {
-        val lines = text.split("\n")
-        val lineHeight = textSizePx * 1.1f
-        val totalHeight = lines.size * lineHeight
-        
-        var currentY = center.y - (totalHeight / 2) + (textSizePx / 3)
+    // Cálculo aproximado del tamaño del Canvas para que contenga el texto
+    val canvasWidth = with(density) { (textSizePx * text.length * 0.7f).toDp() }
+    val canvasHeight = with(density) { (textSizePx * 1.5f).toDp() }
 
-        drawIntoCanvas { canvas ->
-            lines.forEach { line ->
-                canvas.nativeCanvas.drawText(line, center.x, currentY, strokePaint)
-                canvas.nativeCanvas.drawText(line, center.x, currentY, fillPaint)
-                currentY += lineHeight
-            }
+    Canvas(modifier = Modifier.width(canvasWidth).height(canvasHeight)) {
+        val textWidth = strokePaint.measureText(text)
+        
+        drawContext.canvas.nativeCanvas.let { canvas ->
+             // Centrar en el canvas
+            val xPos = (size.width - textWidth) / 2
+            val yPos = size.height - (size.height - textSizePx) / 2
+
+            // Orden de dibujo: Sombra -> Borde -> Relleno
+            canvas.drawText(text, xPos, yPos, shadowPaint)
+            canvas.drawText(text, xPos, yPos, strokePaint)
+            canvas.drawText(text, xPos, yPos, fillPaint)
         }
     }
 }
