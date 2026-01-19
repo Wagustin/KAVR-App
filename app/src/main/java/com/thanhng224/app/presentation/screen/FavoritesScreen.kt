@@ -52,7 +52,7 @@ import androidx.navigation.NavController
 import com.thanhng224.app.presentation.navigation.Screen
 
 private enum class DialogStep {
-    HIDDEN, PLAYERS, GAME_TYPE, DIFFICULTY, SNAKE_MODE
+    HIDDEN, PLAYERS, GAME_TYPE, GAME_TYPE_MEMORY, DIFFICULTY, SNAKE_MODE
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,7 +79,10 @@ fun FavoritesScreen(navController: NavController) {
                     description = "El clásico juego de la serpiente", 
                     icon = Icons.Default.Gamepad, 
                     color = Color(0xFF4CAF50),
-                    onClick = { currentFlow = DialogStep.SNAKE_MODE }
+                    onClick = { 
+                        selectedGame = "SNAKE"
+                        currentFlow = DialogStep.DIFFICULTY 
+                    }
                 )
             }
             item {
@@ -91,8 +94,58 @@ fun FavoritesScreen(navController: NavController) {
                     onClick = { currentFlow = DialogStep.PLAYERS }
                 )
             }
+            item {
+                GameCard(
+                    title = "Cocodrilo 🐊", 
+                    description = "¡Cuidado con la mordida!", 
+                    icon = Icons.Default.Gamepad, 
+                    color = Color(0xFF009688),
+                    onClick = { 
+                        selectedGame = "CROCODILE"
+                        currentFlow = DialogStep.DIFFICULTY 
+                    }
+                )
+            }
+            item {
+                GameCard(
+                    title = "Reto Cronómetro ⏱️", 
+                    description = "¿Quién para en 5.00s?", 
+                    icon = Icons.Default.Timer, 
+                    color = Color(0xFFFF9800),
+                    onClick = { 
+                        selectedGame = "TIMER"
+                        currentFlow = DialogStep.GAME_TYPE // Ask players first
+                    }
+                )
+            }
+            item {
+                GameCard(
+                    title = "Fútbol Penalties ⚽", 
+                    description = "Desliza para anotar", 
+                    icon = Icons.Default.Gamepad, 
+                    color = Color(0xFF2196F3),
+                    onClick = { 
+                        selectedGame = "SOCCER"
+                        currentFlow = DialogStep.DIFFICULTY 
+                    }
+                )
+            }
+            item {
+                GameCard(
+                    title = "Mini Golf ⛳", 
+                    description = "Hoyo en uno", 
+                    icon = Icons.Default.Gamepad, 
+                    color = Color(0xFF8BC34A),
+                    onClick = { 
+                        selectedGame = "MINIGOLF"
+                        currentFlow = DialogStep.DIFFICULTY 
+                    }
+                )
+            }
         }
     }
+
+    var selectedGame by remember { mutableStateOf<String?>(null) } // Tracks which game is being launched
 
     // --- MANEJO DE DIÁLOGOS (Flow) ---
     when (currentFlow) {
@@ -106,7 +159,20 @@ fun FavoritesScreen(navController: NavController) {
             )
         }
 
-        // Paso 1: Jugadores
+        // --- Nuevos Juegos ---
+        
+        // Timer Game: Players -> Difficulty
+        DialogStep.GAME_TYPE -> { // Step 1 for Timer: Players (Reuse existing name or logic)
+             SimplePlayerSelectionDialog(
+                onDismiss = { currentFlow = DialogStep.HIDDEN },
+                onSelect = { players ->
+                    selectedPlayerMode = players
+                    currentFlow = DialogStep.DIFFICULTY // Go to Difficulty next
+                }
+            )
+        }
+
+        // Paso 1: Jugadores (Memory)
         DialogStep.PLAYERS -> {
             SimplePlayerSelectionDialog(
                 onDismiss = { currentFlow = DialogStep.HIDDEN },
@@ -114,49 +180,49 @@ fun FavoritesScreen(navController: NavController) {
                     selectedPlayerMode = players
                     
                     if (players == 2) {
-                        // MODO MULTIJUGADOR: Acceso directo (sin dificultad ni tipo)
                         navController.navigate(
-                            Screen.MemoryGame.createRoute(
-                                players = 2,
-                                submode = Screen.MemoryGame.SUBMODE_ZEN, // Default
-                                difficulty = Screen.MemoryGame.DIFFICULTY_EASY // Default
-                            )
+                            Screen.MemoryGame.createRoute(2, Screen.MemoryGame.SUBMODE_ZEN, Screen.MemoryGame.DIFFICULTY_EASY)
                         )
                         currentFlow = DialogStep.HIDDEN
                     } else {
-                        // MODO 1 JUGADOR: Sigue el flujo normal
-                        currentFlow = DialogStep.GAME_TYPE
+                        currentFlow = DialogStep.GAME_TYPE_MEMORY
                     }
                 }
             )
         }
 
-        // Paso 2: Modo de Juego
-        DialogStep.GAME_TYPE -> {
+        // Paso 2: Modo de Juego (Memory)
+        DialogStep.GAME_TYPE_MEMORY -> {
             GameTypeSelectionDialog(
                 onDismiss = { currentFlow = DialogStep.PLAYERS },
                 onSelect = { type ->
                     selectedGameType = type
-                    // Si es Zen (Casual), saltamos selección de dificultad (es único nivel)
                     if (type == Screen.MemoryGame.SUBMODE_ZEN) {
                         navController.navigate(Screen.MemoryGame.createRoute(selectedPlayerMode, selectedGameType, Screen.MemoryGame.DIFFICULTY_EASY))
                         currentFlow = DialogStep.HIDDEN
                     } else {
+                         selectedGame = "MEMORY" // Mark as Memory
                         currentFlow = DialogStep.DIFFICULTY
                     }
                 }
             )
         }
 
-        // Paso 3: Dificultad (Solo si no es Casual y 1 Jugador)
+        // Unified Difficulty Step for All Games
         DialogStep.DIFFICULTY -> {
             DifficultySelectionDialog(
-                onDismiss = { 
-                    currentFlow = DialogStep.GAME_TYPE 
-                },
+                onDismiss = { currentFlow = DialogStep.HIDDEN }, // Or back to prev step if tracked
                 onSelect = { difficulty ->
-                    navController.navigate(Screen.MemoryGame.createRoute(selectedPlayerMode, selectedGameType, difficulty))
+                    when (selectedGame) {
+                        "MEMORY" -> navController.navigate(Screen.MemoryGame.createRoute(selectedPlayerMode, selectedGameType, difficulty))
+                        "CROCODILE" -> navController.navigate(Screen.CrocodileGame.createRoute(difficulty))
+                        "TIMER" -> navController.navigate(Screen.TimerGame.createRoute(selectedPlayerMode, difficulty))
+                        "SOCCER" -> navController.navigate(Screen.SoccerGame.createRoute(difficulty))
+                        "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(difficulty))
+                        "SNAKE" -> navController.navigate(Screen.SnakeGame.createRoute(difficulty))
+                    }
                     currentFlow = DialogStep.HIDDEN
+                    selectedGame = null
                 }
             )
         }

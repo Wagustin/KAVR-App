@@ -44,8 +44,8 @@ class SnakeViewModel @Inject constructor(
     private var direction = Direction.RIGHT
     private var gameLoopJob: Job? = null
     
-    // Leemos el modo. 0 = Casual, 1 = Tryhard
-    private val gameMode: Int = savedStateHandle.get<Int>("gameMode") ?: 0
+    // Leemos el modo. 0 = Easy, 1 = Medium, 2 = Hard
+    private val difficulty: Int = savedStateHandle.get<Int>("difficulty") ?: 0
 
     init {
         resetGame()
@@ -74,11 +74,16 @@ class SnakeViewModel @Inject constructor(
 
     private suspend fun gameLoop() {
         while (_gameState.value == GameState.PLAYING) {
-            val delayTime = if (gameMode == 0) {
-                CASUAL_DELAY
-            } else {
-                val speedUp = _score.value * SPEED_STEP
-                max(TRYHARD_MIN_DELAY, TRYHARD_START_DELAY - speedUp)
+            val delayTime = when (difficulty) {
+                0 -> CASUAL_DELAY // Easy: Fixed Slow
+                1 -> { // Medium: Moderate Start, Slow Accel
+                     val speedUp = _score.value * (SPEED_STEP / 2)
+                     max(TRYHARD_MIN_DELAY + 40, TRYHARD_START_DELAY - speedUp)
+                }
+                else -> { // Hard: Fast Start, Fast Accel
+                     val speedUp = _score.value * SPEED_STEP
+                     max(TRYHARD_MIN_DELAY, (TRYHARD_START_DELAY - 50) - speedUp)
+                }
             }
             
             delay(delayTime)

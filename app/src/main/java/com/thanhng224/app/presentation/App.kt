@@ -153,6 +153,35 @@ fun App(
                         ) { 
                             MemoryGameScreen(navController = navController)
                         }
+
+                        // NUEVOS JUEGOS
+                        composable(
+                            route = Screen.CrocodileGame.route,
+                            arguments = listOf(navArgument("difficulty") { type = NavType.IntType })
+                        ) { 
+                            com.thanhng224.app.feature.games.CrocodileGameScreen(navController) 
+                        }
+                        composable(
+                            route = Screen.TimerGame.route,
+                            arguments = listOf(
+                                navArgument("players") { type = NavType.IntType },
+                                navArgument("difficulty") { type = NavType.IntType }
+                            )
+                        ) {
+                             com.thanhng224.app.feature.games.TimerGameScreen(navController)
+                        }
+                        composable(
+                            route = Screen.SoccerGame.route,
+                            arguments = listOf(navArgument("difficulty") { type = NavType.IntType })
+                        ) {
+                            com.thanhng224.app.feature.games.SoccerGameScreen(navController)
+                        }
+                        composable(
+                            route = Screen.MiniGolfGame.route,
+                            arguments = listOf(navArgument("difficulty") { type = NavType.IntType })
+                        ) {
+                            com.thanhng224.app.feature.games.MiniGolfGameScreen(navController)
+                        }
                     }
 
                     if (showBottomBar) {
