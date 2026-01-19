@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -82,8 +83,9 @@ fun HomeScreen(
         if (photos.isNotEmpty()) {
             
             // Lista cacheada
+            // Reducida a 8 repeticiones para mejorar la carga inicial y uso de memoria
             val infiniteList = remember(photos) { 
-                List(12) { photos }.flatten() 
+                List(8) { photos }.flatten() 
             } 
 
             // 1. EL MOSAICO DE FONDO
@@ -97,17 +99,30 @@ fun HomeScreen(
                     .fillMaxSize()
                     .alpha(0.55f)
             ) {
-                items(infiniteList) { photo ->
-                    val randomHeight = remember(photo.resId) { 
-                        (160 + (photo.resId % 100)).dp 
+                // Usamos itemsIndexed con key única para optimizar el recomposición de Compose
+                itemsIndexed(
+                    items = infiniteList,
+                    key = { index, _ -> index } // Key estable basada en posición
+                ) { index, photo ->
+                    
+                    // Altura predecible y cíclica para evitar calculos aleatorios (CPU más ligero)
+                    // Ciclo de 4 alturas diferentes: 180, 240, 160, 220
+                    val height = remember(index) {
+                        when (index % 4) {
+                            0 -> 180.dp
+                            1 -> 240.dp
+                            2 -> 160.dp
+                            else -> 220.dp
+                        }
                     }
+                    
                     Image(
                         painter = painterResource(id = photo.resId),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(randomHeight)
+                            .height(height)
                             .clip(RoundedCornerShape(4.dp))
                     )
                 }
