@@ -1,7 +1,9 @@
 package com.thanhng224.app.feature.games
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -268,6 +270,4 @@ fun CrocodileHead(
     }
 }
 
-// Helper for spring animation
-import androidx.compose.animation.core.spring
-import androidx.compose.ui.graphics.graphicsLayer
+
