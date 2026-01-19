@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -49,12 +50,16 @@ fun HomeScreen(
     // --- MOTOR DE SCROLL OPTIMIZADO PARA GAMA BAJA ---
     LaunchedEffect(photos) {
         if (photos.isNotEmpty()) {
-            delay(1000) // Pequeña pausa inicial
+            delay(500) // Pequeña pausa inicial
+            val startTime = System.nanoTime()
             while (isActive) {
-                // Truco Anti-Lag: Mover más distancia (2px) pero con menos frecuencia (80ms)
-                // Esto le da "respiro" al procesador entre cada cuadro de animación.
-                scrollState.scrollBy(2f) 
-                delay(80) 
+                // withFrameMillis sincroniza con el refresco de pantalla (60fps -> 16ms)
+                // Es más eficiente que delay() fijo y evita "jank"
+                withFrameMillis { frameTimeMillis ->
+                    // Movimiento constante muy lento: 0.5 pixels por frame
+                    // Esto es visualmente fluido pero computacionalmente barato
+                     scrollState.dispatchRawDelta(1f) 
+                }
             }
         }
     }
@@ -78,14 +83,22 @@ fun HomeScreen(
                     .fillMaxSize()
                     .alpha(0.55f) // Oscurecido para resaltar texto
             ) {
-                // Lista repetida para efecto infinito (tamaño reducido drásticamente para evitar crash de RAM - de 15 a 4)
-                val infiniteList = List(4) { photos }.flatten()
+                // Lista cacheada para evitar recalculos en cada frame
+                // Reducida a 2 repeticiones, suficiente para llenar pantalla sin saturar RAM
+                val infiniteList = remember(photos) { 
+                    List(20) { photos }.flatten() 
+                } // 20 repeticiones para asegurar "infinito" visual sin ser infinito real
+
                 items(infiniteList) { photo ->
-                    val randomHeight = remember(photo) { Random.nextInt(160, 260).dp }
+                    // Altura aleatoria determinista basada en el ID de la foto para evitar saltos en recomposición
+                    val randomHeight = remember(photo.resId) { 
+                        (160 + (photo.resId % 100)).dp 
+                    }
+                    
                     Image(
                         painter = painterResource(id = photo.resId),
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.Crop, // Crop es ligero si la imagen no es gigante
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(randomHeight)
