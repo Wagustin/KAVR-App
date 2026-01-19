@@ -74,14 +74,14 @@ fun SoccerGameScreen(navController: NavController) {
                         isBallMoving.value = false
                         // Collision Check
                         if (ballPos.value.x > keeperX.floatValue - 0.1f && ballPos.value.x < keeperX.floatValue + 0.1f) {
-                            gameMessage = "¡ATAJADO! 🧤"
+                            gameMessage = "¡ATAJADO!"
                             attempts--
                         } else if (ballPos.value.x > 0.1f && ballPos.value.x < 0.9f) {
-                            gameMessage = "¡GOL! ⚽"
+                            gameMessage = "¡GOL!"
                             score++
                             attempts--
                         } else {
-                            gameMessage = "¡FUERA! ❌"
+                            gameMessage = "¡FUERA!"
                             attempts--
                         }
                     }
@@ -108,7 +108,7 @@ fun SoccerGameScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Penalties ⚽") },
+                title = { Text("Penalties") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")

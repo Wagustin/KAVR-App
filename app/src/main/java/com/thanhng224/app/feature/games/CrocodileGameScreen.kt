@@ -57,7 +57,7 @@ fun CrocodileGameScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Cocodrilo 🐊") },
+                title = { Text("Cocodrilo") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
@@ -81,7 +81,7 @@ fun CrocodileGameScreen(navController: NavController) {
         ) {
             
             Text(
-                if (isGameOver) "¡TE MORDIÓ! 😱" else "Presiona un diente...",
+                if (isGameOver) "¡TE MORDIÓ!" else "Presiona un diente...",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (isGameOver) Color.Red else Color.Black
