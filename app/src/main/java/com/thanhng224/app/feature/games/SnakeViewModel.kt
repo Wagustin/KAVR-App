@@ -15,7 +15,7 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.random.Random
 
-private enum class GameState {
+enum class GameState {
     IDLE, PLAYING, WON, GAMEOVER
 }
 

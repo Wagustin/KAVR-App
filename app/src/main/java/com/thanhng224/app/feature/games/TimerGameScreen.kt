@@ -42,7 +42,7 @@ fun TimerGameScreen(navController: NavController) {
     var p1Score by remember { mutableFloatStateOf(0f) } // Diff from 5.0
     var p2Score by remember { mutableFloatStateOf(0f) }
     
-    var state by remember { mutableStateOf(GameState.INTRO) }
+    var state by remember { mutableStateOf(TimerGameState.INTRO) }
     var startTime by remember { mutableLongStateOf(0L) }
     var currentTimeDisplay by remember { mutableStateOf("0.00") }
     var timerRunning by remember { mutableStateOf(false) }
@@ -77,7 +77,7 @@ fun TimerGameScreen(navController: NavController) {
                 actions = {
                     IconButton(onClick = { 
                         // Reset Total
-                        state = GameState.INTRO
+                        state = TimerGameState.INTRO
                         currentPlayer = 1
                         p1Score = 0f
                         p2Score = 0f
@@ -102,8 +102,8 @@ fun TimerGameScreen(navController: NavController) {
             // Header Info
             if (players == 2) {
                 Text(
-                    text = if (state == GameState.PlayingP1 || state == GameState.INTRO) "Turno: Jugador 1" 
-                           else if (state == GameState.ResultP1 || state == GameState.PlayingP2) "Turno: Jugador 2" 
+                    text = if (state == TimerGameState.PlayingP1 || state == TimerGameState.INTRO) "Turno: Jugador 1" 
+                           else if (state == TimerGameState.ResultP1 || state == TimerGameState.PlayingP2) "Turno: Jugador 2" 
                            else "Resultados",
                     style = MaterialTheme.typography.titleLarge,
                     color = Color.DarkGray
@@ -131,50 +131,50 @@ fun TimerGameScreen(navController: NavController) {
             Button(
                 onClick = {
                     when (state) {
-                        GameState.INTRO -> {
-                            state = if (players == 1) GameState.PlayingSolo else GameState.PlayingP1
+                        TimerGameState.INTRO -> {
+                            state = if (players == 1) TimerGameState.PlayingSolo else TimerGameState.PlayingP1
                             timerRunning = true
                         }
-                        GameState.PlayingSolo -> {
+                        TimerGameState.PlayingSolo -> {
                             timerRunning = false
                             val elapsed = (System.currentTimeMillis() - startTime) / 1000f
                             p1Score = abs(targetTime - elapsed)
                             currentTimeDisplay = String.format("%.2f", elapsed)
-                            state = GameState.ResultSolo
+                            state = TimerGameState.ResultSolo
                         }
-                        GameState.ResultSolo -> {
+                        TimerGameState.ResultSolo -> {
                             // Restart Solo
                             currentTimeDisplay = "0.00"
-                            state = GameState.INTRO
+                            state = TimerGameState.INTRO
                         }
                         
                         // 2 Player Logic
-                        GameState.PlayingP1 -> {
+                        TimerGameState.PlayingP1 -> {
                             timerRunning = false
                             val elapsed = (System.currentTimeMillis() - startTime) / 1000f
                             p1Score = abs(targetTime - elapsed)
                             currentTimeDisplay = String.format("%.2f", elapsed)
                             scope.launch {
                                 delay(2000) // Show result briefly
-                                state = GameState.WaitForP2
+                                state = TimerGameState.WaitForP2
                                 currentTimeDisplay = "0.00"
                             }
-                            state = GameState.ResultP1 // Temporary state to block input
+                            state = TimerGameState.ResultP1 // Temporary state to block input
                         }
-                        GameState.WaitForP2 -> {
-                            state = GameState.PlayingP2
+                        TimerGameState.WaitForP2 -> {
+                            state = TimerGameState.PlayingP2
                             timerRunning = true
                         }
-                        GameState.PlayingP2 -> {
+                        TimerGameState.PlayingP2 -> {
                             timerRunning = false
                             val elapsed = (System.currentTimeMillis() - startTime) / 1000f
                             p2Score = abs(targetTime - elapsed)
                             currentTimeDisplay = String.format("%.2f", elapsed)
-                            state = GameState.FinalResult
+                            state = TimerGameState.FinalResult
                         }
-                        GameState.FinalResult -> {
+                        TimerGameState.FinalResult -> {
                              // Reset
-                             state = GameState.INTRO
+                             state = TimerGameState.INTRO
                              currentPlayer = 1
                              currentTimeDisplay = "0.00"
                         }
@@ -188,7 +188,7 @@ fun TimerGameScreen(navController: NavController) {
                 )
             ) {
                 Text(
-                    text = if (timerRunning) "STOP" else if (state == GameState.FinalResult || state == GameState.ResultSolo) "RETRY" else "GO",
+                    text = if (timerRunning) "STOP" else if (state == TimerGameState.FinalResult || state == TimerGameState.ResultSolo) "RETRY" else "GO",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -197,9 +197,9 @@ fun TimerGameScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(32.dp))
             
             // Result Display
-            if (state == GameState.ResultSolo) {
+            if (state == TimerGameState.ResultSolo) {
                 ResultText(diff = p1Score)
-            } else if (state == GameState.FinalResult) {
+            } else if (state == TimerGameState.FinalResult) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("J1 Diff: ${String.format("%.2f", p1Score)}", fontWeight = FontWeight.Bold)
                     Text("J2 Diff: ${String.format("%.2f", p2Score)}", fontWeight = FontWeight.Bold)
@@ -229,7 +229,7 @@ fun ResultText(diff: Float) {
     }
 }
 
-enum class GameState {
+enum class TimerGameState {
     INTRO, PlayingSolo, ResultSolo,
     PlayingP1, ResultP1, WaitForP2, PlayingP2, FinalResult
 }
