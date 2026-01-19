@@ -15,6 +15,10 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.random.Random
 
+private enum class GameState {
+    IDLE, PLAYING, WON, GAMEOVER
+}
+
 // --- AJUSTE DE VELOCIDADES ---
 private const val CASUAL_DELAY = 200L         // Lento y relajante
 private const val TRYHARD_START_DELAY = 150L  // Velocidad media inicial
