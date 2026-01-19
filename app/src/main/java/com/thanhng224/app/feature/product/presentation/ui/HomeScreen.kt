@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.withFrameMillis
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -48,17 +49,25 @@ fun HomeScreen(
     val photos by memoriesViewModel.photos.collectAsState()
     val scrollState = rememberLazyStaggeredGridState()
 
-    // --- MOTOR DE SCROLL OPTIMIZADO PARA GAMA BAJA ---
+    // --- MOTOR DE SCROLL OPTIMIZADO CON DELTA TIME (Velocidad Constante) ---
     LaunchedEffect(photos) {
         if (photos.isNotEmpty()) {
-            delay(500) // Pequeña pausa inicial
-            val startTime = System.nanoTime()
+            delay(500) // Esperar a que cargue UI
+            var lastTime = System.nanoTime()
+            val speedPxPerSec = 250f // Velocidad objetivo: 250 pixels por segundo
+
             while (isActive) {
-                // withFrameMillis sincroniza con el refresco de pantalla (60fps -> 16ms)
-                // Es más eficiente que delay() fijo y evita "jank"
-                withFrameMillis { frameTimeMillis ->
-                    // Movimiento más rápido solicitado por usuario (4x más rápido que antes)
-                     scrollState.dispatchRawDelta(4f) 
+                withFrameNanos { time ->
+                    val dt = (time - lastTime) / 1_000_000_000f // Convertir nanosegundos a segundos
+                    lastTime = time
+                    
+                    // Limitar dt para evitar saltos grandes si el hilo se congela un momento
+                    val safeDt = dt.coerceAtMost(0.1f) 
+                    
+                    if (safeDt > 0) {
+                        val scrollDelta = speedPxPerSec * safeDt
+                        scrollState.dispatchRawDelta(scrollDelta)
+                    }
                 }
             }
         }
@@ -74,7 +83,7 @@ fun HomeScreen(
             
             // Lista cacheada
             val infiniteList = remember(photos) { 
-                List(20) { photos }.flatten() 
+                List(12) { photos }.flatten() 
             } 
 
             // 1. EL MOSAICO DE FONDO
