@@ -61,6 +61,7 @@ fun FavoritesScreen(navController: NavController) {
     var currentFlow by remember { mutableStateOf(DialogStep.HIDDEN) }
     var selectedPlayerMode by remember { mutableIntStateOf(1) }
     var selectedGameType by remember { mutableIntStateOf(Screen.MemoryGame.SUBMODE_ZEN) }
+    var selectedGame by remember { mutableStateOf<String?>(null) } // Tracks which game is being launched
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
@@ -145,7 +146,7 @@ fun FavoritesScreen(navController: NavController) {
         }
     }
 
-    var selectedGame by remember { mutableStateOf<String?>(null) } // Tracks which game is being launched
+
 
     // --- MANEJO DE DIÁLOGOS (Flow) ---
     when (currentFlow) {
