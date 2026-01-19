@@ -64,9 +64,8 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                 // Al hacer click en cualquier lado, entramos al collage completo
-                navController.navigate(Screen.Memories.route)
+                // navController.navigate(Screen.Memories.route) // REMOVED PER USER REQUEST
             }
     ) {
         if (photos.isNotEmpty()) {
@@ -128,7 +127,7 @@ fun HomeScreen(
                     Text(
                         text = "Feliz\nCumpleaños",
                         style = TextStyle(
-                            fontSize = 60.sp, // ENORME
+                            fontSize = 48.sp, // Reduced from 60.sp to prevent wrapping
                             fontWeight = FontWeight.Bold,
                             color = GoldColor,
                             textAlign = TextAlign.Center,
@@ -144,7 +143,7 @@ fun HomeScreen(
                     Text(
                         text = "Mi Amor",
                         style = TextStyle(
-                            fontSize = 72.sp, // AÚN MÁS GRANDE
+                            fontSize = 58.sp, // Reduced from 72.sp
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
                             textAlign = TextAlign.Center,
@@ -156,11 +155,7 @@ fun HomeScreen(
                     )
 
                     Spacer(modifier = Modifier.height(32.dp))
-                    Text(
-                        text = "(Toca para ver nuestros recuerdos)",
-                        color = Color.White.copy(alpha = 0.8f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    // Text removed per user request (No memories link)
                 }
             }
 

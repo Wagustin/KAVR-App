@@ -40,60 +40,24 @@ fun LoginScreen(
     var showAnimation by remember { mutableStateOf(false) }
 
     // Color Púrpura Vibrante para el tema oscuro
-    val purpleColor = Color(0xFFBB86FC)
+    // Color Púrpura Vibrante para el tema oscuro (Unused now, but kept if needed for other things or removed)
+    // val purpleColor = Color(0xFFBB86FC) 
+
+    // Auto-start animation
+    LaunchedEffect(Unit) {
+        showAnimation = true
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212)) // Fondo oscuro
+            .background(Color.Black) // Fondo negro cinemático
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Empujamos el contenido hacia abajo (posición solicitada previamente)
-            Spacer(modifier = Modifier.weight(1.3f))
-
-            // Botón Estético y Moderno (Minimalista)
-            Button(
-                onClick = { 
-                    showAnimation = true 
-                },
-                modifier = Modifier
-                    .fillMaxWidth(0.6f) // Ancho elegante
-                    .height(56.dp)
-                    .border(
-                        BorderStroke(2.dp, purpleColor), // Borde púrpura
-                        shape = RoundedCornerShape(percent = 50) // Forma redondeada (Pill shape)
-                    ),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent, // Fondo transparente
-                    contentColor = purpleColor // Texto púrpura
-                ),
-                shape = RoundedCornerShape(percent = 50),
-                elevation = ButtonDefaults.buttonElevation(0.dp)
-            ) {
-                Text(
-                    text = "INICIAR",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp // Espaciado limpio
-                )
-            }
-            
-            // Espacio inferior
-            Spacer(modifier = Modifier.weight(0.7f))
-        }
+        // No Button anymore.
         
         // Flower Animation Overlay
-        AnimatedVisibility(
-            visible = showAnimation,
-            enter = fadeIn(animationSpec = tween(500)),
-            exit = fadeOut()
-        ) {
-            FlowerAnimation(
+        if (showAnimation) {
+             FlowerAnimation(
                 onAnimationFinished = onLoginSuccess
             )
         }
