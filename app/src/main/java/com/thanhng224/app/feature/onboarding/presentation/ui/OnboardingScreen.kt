@@ -39,7 +39,7 @@ fun OnboardingScreen(
     ) {
         if (startAnimation) {
             FlowerAnimation(
-                onAnimationEnd = { 
+                onAnimationFinished = { 
                     // Optional: could trigger nav here if FlowerAnimation supports it, 
                     // but delay is safer if callback isn't reliable
                 }
