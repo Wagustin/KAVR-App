@@ -1,8 +1,5 @@
 package com.thanhng224.app.feature.product.presentation.ui
 
-import android.graphics.Paint
-import android.graphics.Typeface
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,15 +20,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.res.ResourcesCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.thanhng224.app.feature.memories.MemoriesViewModel
@@ -55,10 +51,10 @@ fun HomeScreen(
         if (photos.isNotEmpty()) {
             delay(1000) // Pequeña pausa inicial
             while (isActive) {
-                // Truco Anti-Lag: Mover más distancia (2px) pero con menos frecuencia (60ms)
+                // Truco Anti-Lag: Mover más distancia (2px) pero con menos frecuencia (80ms)
                 // Esto le da "respiro" al procesador entre cada cuadro de animación.
                 scrollState.scrollBy(2f) 
-                delay(60) 
+                delay(80) 
             }
         }
     }
@@ -85,8 +81,8 @@ fun HomeScreen(
                     .fillMaxSize()
                     .alpha(0.55f) // Oscurecido para resaltar texto
             ) {
-                // Lista repetida para efecto infinito (tamaño controlado para no saturar RAM)
-                val infiniteList = List(15) { photos }.flatten()
+                // Lista repetida para efecto infinito (tamaño reducido drásticamente para evitar crash de RAM - de 15 a 4)
+                val infiniteList = List(4) { photos }.flatten()
                 items(infiniteList) { photo ->
                     val randomHeight = remember(photo) { Random.nextInt(160, 260).dp }
                     Image(
@@ -116,106 +112,62 @@ fun HomeScreen(
                     )
             )
 
-            // 3. TEXTO CENTRAL GIGANTE
-            Column(
+            // 3. TEXTO CENTRAL GIGANTE EN CAJA
+            Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(horizontal = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.Black.copy(alpha = 0.6f)) // Fondo semitransparente para legibilidad
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
             ) {
-                LuxuryText(text = "Feliz", fontSize = 65f)
-                LuxuryText(text = "Cumpleaños", fontSize = 65f)
-                Spacer(modifier = Modifier.height(16.dp))
-                LuxuryText(text = "Mi Amor", fontSize = 90f) // GIGANTE
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                Text(
-                    text = "(Toca para ver nuestros recuerdos)",
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Feliz\nCumpleaños",
+                        style = TextStyle(
+                            fontSize = 60.sp, // ENORME
+                            fontWeight = FontWeight.Bold,
+                            color = GoldColor,
+                            textAlign = TextAlign.Center,
+                            shadow = Shadow(
+                                color = Color.Black,
+                                blurRadius = 20f
+                            )
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Mi Amor",
+                        style = TextStyle(
+                            fontSize = 72.sp, // AÚN MÁS GRANDE
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            shadow = Shadow(
+                                color = Color.Black,
+                                blurRadius = 20f
+                            )
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Text(
+                        text = "(Toca para ver nuestros recuerdos)",
+                        color = Color.White.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
 
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Cargando...", color = Color.White)
             }
-        }
-    }
-}
-
-@Composable
-fun LuxuryText(text: String, fontSize: Float) {
-    val context = LocalContext.current
-    val density = LocalDensity.current
-
-    // Carga de fuente segura: Evita error de compilación si no existe R.font
-    val customTypeface = remember {
-        try {
-            @Suppress("DiscouragedApi") // Se suprime warning ya que es la única forma dinámica segura
-            val fontId = context.resources.getIdentifier("mi_letra_elegante", "font", context.packageName)
-            if (fontId != 0) {
-                ResourcesCompat.getFont(context, fontId)
-            } else {
-                Typeface.DEFAULT_BOLD
-            }
-        } catch (_: Exception) {
-            Typeface.DEFAULT_BOLD
-        }
-    }
-
-    val textSizePx = with(density) { fontSize.sp.toPx() }
-    val strokeWidthPx = with(density) { (fontSize * 0.04f).dp.toPx() } // Borde proporcional
-
-    // PINTURAS (Paint) optimizadas se crean una sola vez con 'remember'
-    
-    // 1. Sombra Negra Fuerte (Para legibilidad extrema)
-    val shadowPaint = remember {
-        Paint().apply {
-            typeface = customTypeface
-            color = Color.Transparent.toArgb() // El color base no importa, solo la sombra
-            style = Paint.Style.FILL
-            setShadowLayer(20f, 0f, 0f, Color.Black.toArgb()) // Radio de sombra grande
-        }
-    }
-
-    // 2. Borde Dorado
-    val strokePaint = remember {
-        Paint().apply {
-            typeface = customTypeface
-            color = GoldColor.toArgb()
-            style = Paint.Style.STROKE
-            strokeWidth = strokeWidthPx
-            isAntiAlias = true
-        }
-    }
-
-    // 3. Relleno Blanco
-    val fillPaint = remember {
-        Paint().apply {
-            typeface = customTypeface
-            color = android.graphics.Color.WHITE
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-    }
-
-    // Cálculo aproximado del tamaño del Canvas para que contenga el texto
-    val canvasWidth = with(density) { (textSizePx * text.length * 0.7f).toDp() }
-    val canvasHeight = with(density) { (textSizePx * 1.5f).toDp() }
-
-    Canvas(modifier = Modifier.width(canvasWidth).height(canvasHeight)) {
-        val textWidth = strokePaint.measureText(text)
-        
-        drawContext.canvas.nativeCanvas.let { canvas ->
-             // Centrar en el canvas
-            val xPos = (size.width - textWidth) / 2
-            val yPos = size.height - (size.height - textSizePx) / 2
-
-            // Orden de dibujo: Sombra -> Borde -> Relleno
-            canvas.drawText(text, xPos, yPos, shadowPaint)
-            canvas.drawText(text, xPos, yPos, strokePaint)
-            canvas.drawText(text, xPos, yPos, fillPaint)
         }
     }
 }
