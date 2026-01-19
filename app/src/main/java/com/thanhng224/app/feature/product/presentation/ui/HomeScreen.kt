@@ -72,6 +72,13 @@ fun HomeScreen(
 
     ) {
         if (photos.isNotEmpty()) {
+            
+            // Lista cacheada para evitar recalculos en cada frame
+            // Reducida a 2 repeticiones, suficiente para llenar pantalla sin saturar RAM
+            val infiniteList = remember(photos) { 
+                List(20) { photos }.flatten() 
+            } // 20 repeticiones para asegurar "infinito" visual sin ser infinito real
+
             // 1. EL MOSAICO DE FONDO
             LazyVerticalStaggeredGrid(
                 columns = StaggeredGridCells.Fixed(3), // 3 Columnas se ve mejor
@@ -83,11 +90,6 @@ fun HomeScreen(
                     .fillMaxSize()
                     .alpha(0.55f) // Oscurecido para resaltar texto
             ) {
-                // Lista cacheada para evitar recalculos en cada frame
-                // Reducida a 2 repeticiones, suficiente para llenar pantalla sin saturar RAM
-                val infiniteList = remember(photos) { 
-                    List(20) { photos }.flatten() 
-                } // 20 repeticiones para asegurar "infinito" visual sin ser infinito real
 
                 items(infiniteList) { photo ->
                     // Altura aleatoria determinista basada en el ID de la foto para evitar saltos en recomposición
