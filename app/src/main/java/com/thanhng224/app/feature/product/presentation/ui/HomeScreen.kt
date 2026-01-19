@@ -64,9 +64,7 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-                // Al hacer click en cualquier lado, entramos al collage completo
-                // navController.navigate(Screen.Memories.route) // REMOVED PER USER REQUEST
-            }
+
     ) {
         if (photos.isNotEmpty()) {
             // 1. EL MOSAICO DE FONDO
