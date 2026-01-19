@@ -2,88 +2,160 @@ package com.thanhng224.app.presentation.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.thanhng224.app.R
+import kotlin.random.Random
 
 @Composable
 fun ProfileScreen() {
+    // Generate random flower positions once
+    val flowerClusters = remember { List(4) { Random.nextFloat() } } 
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF3E2723)), // Background Color: Dark Wood
+            .background(Color(0xFF3E2723)), // Dark Wood Background
         contentAlignment = Alignment.Center
     ) {
         // Paper Sheet
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .fillMaxHeight(0.8f)
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.85f)
                 .background(Color(0xFFFDFBF7)) // Off-white paper color
                 .drawBehind {
                     val width = size.width
                     val height = size.height
 
-                    // Paper Lines
-                    val lineHeight = 40.dp.toPx()
-                    val startY = 100.dp.toPx()
+                    // 1. Paper Texture/Lines
+                    val lineHeight = 35.dp.toPx()
+                    val startY = 80.dp.toPx()
                     var y = startY
                     
                     while (y < height - 40.dp.toPx()) {
                         drawLine(
-                            color = Color(0xFFB0BEC5), // Light Blue line
+                            color = Color(0xFFECEFF1), // Very faint blue
                             start = Offset(0f, y),
                             end = Offset(width, y),
-                            strokeWidth = 2f
+                            strokeWidth = 1f
                         )
                         y += lineHeight
                     }
 
-                    // Margin Line
-                    drawLine(
-                        color = Color(0xFFFFCDD2), // Red margin
-                        start = Offset(width * 0.15f, 0f),
-                        end = Offset(width * 0.15f, height),
-                        strokeWidth = 2f
-                    )
+                    // 2. "Flores Nube" (Baby's Breath) Decoration
+                    // Draw clusters at top-left and bottom-right
+                    drawBabyBreathCluster(Offset(40f, 40f))
+                    drawBabyBreathCluster(Offset(width - 40f, height - 40f))
+                    drawBabyBreathCluster(Offset(width - 30f, 50f))
+                    drawBabyBreathCluster(Offset(40f, height - 60f))
                 }
-                .padding(24.dp)
+                .padding(32.dp)
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()), // Allow scrolling if text is long
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Date / Header
+                // Header
                 Text(
-                    text = "Para Ti",
+                    text = "Para ti, Kitkat",
                     fontFamily = FontFamily.Cursive,
-                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 36.sp,
+                    color = Color.Black,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+                
+                // Poem Body
+                Text(
+                    text = "No soy perfecto, pero todo lo que hago por ti\n" +
+                           "lo hago con amor.\n\n" +
+                           "Esta app es solo una excusa\n" +
+                           "para recordarte lo importante que eres para mí\n" +
+                           "y lo feliz que me haces.\n\n" +
+                           "Feliz cumpleaños 💖\n\n" +
+                           "Esta app existe porque tú existes en mi vida,\n",
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 20.sp,
+                    lineHeight = 32.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color(0xFF424242)
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Signature
+                Text(
+                    text = "siempre tuyo,\nwagustincito",
+                    fontFamily = FontFamily.Cursive,
+                    fontSize = 28.sp,
+                    textAlign = TextAlign.End,
                     color = Color.Black,
                     modifier = Modifier.align(Alignment.End)
                 )
-                
-                Spacer(modifier = Modifier.height(40.dp))
-                
-                // Body Text Placeholder
-                Text(
-                    text = "Escribe aquí tu dedicatoria...",
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 20.sp,
-                    lineHeight = 40.sp, 
-                    color = Color(0xFF424242),
-                    modifier = Modifier.padding(start = 16.dp)
-                )
             }
+        }
+    }
+}
+
+// Helper to draw "Flores Nube" (Gypsophila)
+// Clusters of tiny white dots on thin stems
+fun DrawScope.drawBabyBreathCluster(center: Offset) {
+    val stemColor = Color(0xFFA5D6A7) // Light Green
+    val flowerColor = Color.White
+    val shadowColor = Color(0xFFE0E0E0)
+    
+    val rnd = Random(center.hashCode())
+
+    // Draw Stems
+    for (i in 0..15) {
+        val angle = rnd.nextFloat() * 6.28f
+        val length = 30f + rnd.nextFloat() * 40f
+        val endX = center.x + kotlin.math.cos(angle) * length
+        val endY = center.y + kotlin.math.sin(angle) * length
+        
+        drawLine(
+            color = stemColor,
+            start = center,
+            end = Offset(endX, endY),
+            strokeWidth = 2f
+        )
+        
+        // Draw tiny flowers (blooms) at end
+        drawCircle(
+            color = shadowColor,
+            radius = 6f,
+            center = Offset(endX + 2f, endY + 2f)
+        )
+        drawCircle(
+            color = flowerColor,
+            radius = 5f,
+            center = Offset(endX, endY)
+        )
+        
+        // Some flowers along the stem
+        if (rnd.nextBoolean()) {
+            val midX = (center.x + endX) / 2
+            val midY = (center.y + endY) / 2
+            drawCircle(flowerColor, radius = 4f, center = Offset(midX, midY))
         }
     }
 }
