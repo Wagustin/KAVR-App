@@ -109,12 +109,12 @@ fun ProfileScreen() {
                            "Esta app existe porque tú existes en mi vida,\n",
                     fontFamily = FontFamily.Serif,
                     fontSize = 20.sp, // Bigger as requested
-                    lineHeight = 28.sp, // Good spacing
+                    lineHeight = 26.sp, // Slightly tighter to save vertical space
                     textAlign = TextAlign.Center,
                     color = Color(0xFF424242)
                 )
 
-                Spacer(modifier = Modifier.height(24.dp)) // More separation
+                Spacer(modifier = Modifier.height(8.dp)) // Reduced to raise signature
 
                 // Signature
                 Text(
