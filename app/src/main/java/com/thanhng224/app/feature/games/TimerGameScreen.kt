@@ -57,7 +57,7 @@ fun TimerGameScreen(navController: NavController) {
     val targetTime = 5.00f
 
     // --- GAME STATE ---
-    var gameState by remember { mutableStateOf(GameState.INTRO) }
+    var gameState by remember { mutableStateOf(TimerGameState.INTRO) }
     var countdownValue by remember { mutableIntStateOf(3) }
 
     // Player States
@@ -77,7 +77,7 @@ fun TimerGameScreen(navController: NavController) {
 
     // Helper to start game
     fun startGame() {
-        gameState = GameState.COUNTDOWN
+        gameState = TimerGameState.COUNTDOWN
         // Reset values
         p1Finished = false
         p1Display = "0.00"
@@ -91,21 +91,21 @@ fun TimerGameScreen(navController: NavController) {
     // Helper to finish game/round
     fun checkFinish() {
         if (players == 1) {
-            if (p1Finished) gameState = GameState.FINISHED
+            if (p1Finished) gameState = TimerGameState.FINISHED
         } else {
-            if (p1Finished && p2Finished) gameState = GameState.FINISHED
+            if (p1Finished && p2Finished) gameState = TimerGameState.FINISHED
         }
     }
 
     // COUNTDOWN LOGIC
     LaunchedEffect(gameState) {
-        if (gameState == GameState.COUNTDOWN) {
+        if (gameState == TimerGameState.COUNTDOWN) {
             for (i in 3 downTo 1) {
                 countdownValue = i
                 delay(1000)
             }
             // START!
-            gameState = GameState.PLAYING
+            gameState = TimerGameState.PLAYING
             val now = System.currentTimeMillis()
             
             p1StartTime = now
@@ -122,7 +122,7 @@ fun TimerGameScreen(navController: NavController) {
     LaunchedEffect(p1Running, p2Running) {
         if (p1Running || p2Running) {
             var lastUiUpdate = 0L
-            while (gameState == GameState.PLAYING) {
+            while (gameState == TimerGameState.PLAYING) {
                 val now = System.currentTimeMillis()
                 
                 // Throttle UI updates to ~30 FPS (33ms) to save CPU on A12
@@ -169,7 +169,7 @@ fun TimerGameScreen(navController: NavController) {
                 actions = {
                     IconButton(onClick = { 
                         // Hard Reset
-                        gameState = GameState.INTRO
+                        gameState = TimerGameState.INTRO
                         p1Running = false
                         p2Running = false
                         p1Finished = false
@@ -207,13 +207,13 @@ fun TimerGameScreen(navController: NavController) {
                         displayTime = p1Display,
                         targetTime = "5.00",
                         textColor = Color.White,
-                        state = if (gameState == GameState.FINISHED) PlayerState.Stopped(p1StopTime, targetTime) 
-                                else if (gameState == GameState.PLAYING) PlayerState.Running 
+                        state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p1StopTime, targetTime) 
+                                else if (gameState == TimerGameState.PLAYING) PlayerState.Running 
                                 else PlayerState.Idle,
                         onAction = {
-                            if (gameState == GameState.INTRO || gameState == GameState.FINISHED) {
+                            if (gameState == TimerGameState.INTRO || gameState == TimerGameState.FINISHED) {
                                 startGame()
-                            } else if (gameState == GameState.PLAYING && !p1Finished) {
+                            } else if (gameState == TimerGameState.PLAYING && !p1Finished) {
                                 p1Running = false
                                 p1Finished = true
                                 val elapsed = (System.currentTimeMillis() - p1StartTime) / 1000f
@@ -242,15 +242,15 @@ fun TimerGameScreen(navController: NavController) {
                             displayTime = p2Display,
                             targetTime = "5.00",
                             textColor = Color.White,
-                            state = if (gameState == GameState.FINISHED) PlayerState.Stopped(p2StopTime, targetTime)
-                                    else if (gameState == GameState.PLAYING && p2Finished) PlayerState.Waiting // Finished but waiting for P1
-                                    else if (gameState == GameState.PLAYING) PlayerState.Running
+                            state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p2StopTime, targetTime)
+                                    else if (gameState == TimerGameState.PLAYING && p2Finished) PlayerState.Waiting // Finished but waiting for P1
+                                    else if (gameState == TimerGameState.PLAYING) PlayerState.Running
                                     else PlayerState.Idle,
                             onAction = {
-                                if (gameState == GameState.INTRO || gameState == GameState.FINISHED) {
+                                if (gameState == TimerGameState.INTRO || gameState == TimerGameState.FINISHED) {
                                     // Only global start needed? Let's say either can start
                                     startGame() 
-                                } else if (gameState == GameState.PLAYING && !p2Finished) {
+                                } else if (gameState == TimerGameState.PLAYING && !p2Finished) {
                                     p2Running = false
                                     p2Finished = true
                                     val elapsed = (System.currentTimeMillis() - p2StartTime) / 1000f
@@ -279,14 +279,14 @@ fun TimerGameScreen(navController: NavController) {
                             displayTime = p1Display,
                             targetTime = "5.00",
                             textColor = Color.White,
-                            state = if (gameState == GameState.FINISHED) PlayerState.Stopped(p1StopTime, targetTime)
-                                    else if (gameState == GameState.PLAYING && p1Finished) PlayerState.Waiting
-                                    else if (gameState == GameState.PLAYING) PlayerState.Running
+                            state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p1StopTime, targetTime)
+                                    else if (gameState == TimerGameState.PLAYING && p1Finished) PlayerState.Waiting
+                                    else if (gameState == TimerGameState.PLAYING) PlayerState.Running
                                     else PlayerState.Idle,
                             onAction = {
-                                if (gameState == GameState.INTRO || gameState == GameState.FINISHED) {
+                                if (gameState == TimerGameState.INTRO || gameState == TimerGameState.FINISHED) {
                                     startGame()
-                                } else if (gameState == GameState.PLAYING && !p1Finished) {
+                                } else if (gameState == TimerGameState.PLAYING && !p1Finished) {
                                     p1Running = false
                                     p1Finished = true
                                     val elapsed = (System.currentTimeMillis() - p1StartTime) / 1000f
@@ -301,7 +301,7 @@ fun TimerGameScreen(navController: NavController) {
             }
 
             // 3. COUNTDOWN OVERLAY (Last -> Top)
-            if (gameState == GameState.COUNTDOWN) {
+            if (gameState == TimerGameState.COUNTDOWN) {
                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) {
                     Text(
                         text = "$countdownValue",
@@ -478,6 +478,6 @@ fun TimerPlayerZone(
     }
 }
 
-enum class GameState {
+enum class TimerGameState {
     INTRO, COUNTDOWN, PLAYING, FINISHED
 }
