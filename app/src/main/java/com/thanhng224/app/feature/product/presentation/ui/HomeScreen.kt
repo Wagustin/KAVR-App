@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.thanhng224.app.feature.memories.MemoriesViewModel
@@ -116,8 +117,14 @@ fun HomeScreen(
                         }
                     }
                     
-                    Image(
-                        painter = painterResource(id = photo.resId),
+                    AsyncImage(
+                        model = androidx.compose.ui.platform.LocalContext.current.let { context ->
+                            coil.request.ImageRequest.Builder(context)
+                                .data(photo.resId)
+                                .size(500) // Downsampling explícito para evitar OOM con fotos de cámara
+                                .crossfade(true)
+                                .build()
+                        },
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
