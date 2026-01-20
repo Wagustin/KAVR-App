@@ -211,16 +211,18 @@ fun SoccerGameScreen(navController: NavController) {
                             )
                             
                             // Draw Net
+                            val netColor = Color(0x80FFFFFF)
                             for (i in 1..5) {
-                                 drawLine(Color(0x80FFFFFF), 
+                                 drawLine(netColor, 
                                     start = Offset(w * 0.1f + (w * 0.8f * i / 6), h * 0.05f),
                                     end = Offset(w * 0.1f + (w * 0.8f * i / 6), h * 0.15f)
                                  )
                             }
                             
                             // Draw Keeper
+                            val keeperColor = Color(0xFFD32F2F)
                             drawRect(
-                                color = Color(0xFFD32F2F), 
+                                color = keeperColor, 
                                 topLeft = Offset(w * (kX - 0.08f), h * 0.12f),
                                 size = Size(w * 0.16f, h * 0.06f)
                             )

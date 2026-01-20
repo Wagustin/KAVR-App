@@ -67,6 +67,30 @@ fun SettingsScreen() {
         Achievement("Serpiente", "Puntuación > 50", false),
         Achievement("Anaconda", "Puntuación > 100", false)
     )
+
+    val miniGolfAchievements = listOf(
+        Achievement("Hoyo en Uno", "Completa un nivel en 1 tiro", false),
+        Achievement("Golfista Pro", "Completa los 3 niveles", false),
+        Achievement("Preciso", "Gana sin chocar paredes", false)
+    )
+
+    val soccerAchievements = listOf(
+        Achievement("Goleador", "Anota 5 goles seguidos", false),
+        Achievement("Hat-Trick", "Anota 3 goles en una ronda", false),
+        Achievement("Imparable", "Puntuación perfecta (5/5)", false)
+    )
+
+    val crocodileAchievements = listOf(
+        Achievement("Dentista", "Encuentra todos los dientes seguros", false),
+        Achievement("Valiente", "Juega en modo Difícil", false),
+        Achievement("Suertudo", "Sobrevive 10 turnos seguidos", false)
+    )
+
+    val timerAchievements = listOf(
+        Achievement("Cronometrista", "Diferencia < 0.10s", false),
+        Achievement("Perfecto", "Diferencia exacta 0.00s", false),
+        Achievement("Reloj Humano", "Gana 3 veces seguidas", false)
+    )
     
     val isDarkMode by appViewModel.isDarkMode.collectAsState()
 
@@ -136,6 +160,42 @@ fun SettingsScreen() {
                     gameName = "Snake",
                     color = Color(0xFF4CAF50), // Green
                     achievements = snakeAchievements
+                )
+            }
+
+            // Logros de Mini Golf
+            item {
+                GameAchievementsCard(
+                    gameName = "Mini Golf",
+                    color = Color(0xFF8BC34A), // Light Green
+                    achievements = miniGolfAchievements
+                )
+            }
+
+            // Logros de Soccer
+            item {
+                GameAchievementsCard(
+                    gameName = "Soccer",
+                    color = Color(0xFF2E7D32), // Dark Green
+                    achievements = soccerAchievements
+                )
+            }
+
+            // Logros de Crocodile
+            item {
+                GameAchievementsCard(
+                    gameName = "Crocodile",
+                    color = Color(0xFF00BCD4), // Cyan
+                    achievements = crocodileAchievements
+                )
+            }
+
+            // Logros de Timer
+            item {
+                GameAchievementsCard(
+                    gameName = "Timer",
+                    color = Color(0xFFFF9800), // Orange
+                    achievements = timerAchievements
                 )
             }
             

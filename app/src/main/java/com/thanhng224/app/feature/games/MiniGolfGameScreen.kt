@@ -235,15 +235,17 @@ fun MiniGolfGameScreen(navController: NavController) {
                 )
                 
                 // Draw Walls
+                val wallColor = Color(0xFF5D4037)
+                val wallBorderColor = Color(0xFF3E2723)
                 currentLevel.walls.forEach { wall ->
                     drawRect(
-                        color = Color(0xFF5D4037), // Brown wood
+                        color = wallColor, // Brown wood
                         topLeft = Offset(w * wall.x, h * wall.y),
                         size = Size(w * wall.w, h * wall.h)
                     )
                     // Border
                     drawRect(
-                         color = Color(0xFF3E2723), 
+                         color = wallBorderColor, 
                          topLeft = Offset(w * wall.x, h * wall.y), 
                          size = Size(w * wall.w, h * wall.h), 
                          style = Stroke(width = 4f)
