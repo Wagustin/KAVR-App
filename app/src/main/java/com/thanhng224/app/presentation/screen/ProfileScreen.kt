@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -65,12 +66,19 @@ fun ProfileScreen() {
                         y += lineHeight
                     }
 
-                    // 2. "Flores Nube" (Baby's Breath) Decoration
-                    // Draw clusters at top-left and bottom-right
-                    drawBabyBreathCluster(Offset(40f, 40f))
-                    drawBabyBreathCluster(Offset(width - 40f, height - 40f))
-                    drawBabyBreathCluster(Offset(width - 30f, 50f))
-                    drawBabyBreathCluster(Offset(40f, height - 60f))
+                    // 2. Corner Vignette (Oscurecer esquinas para contraste)
+                    val vignetteBrush = Brush.radialGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.15f)),
+                        center = Offset(width / 2, height / 2),
+                        radius = width * 0.7f
+                    )
+                    drawRect(brush = vignetteBrush, size = size)
+                    
+                    // 3. "Flores Nube" Bouquet Decoration
+                    drawBouquet(Offset(40f, 40f))
+                    drawBouquet(Offset(width - 40f, height - 40f))
+                    drawBouquet(Offset(width - 30f, 50f))
+                    drawBouquet(Offset(40f, height - 60f))
                 }
                 .padding(32.dp)
         ) {
@@ -122,46 +130,46 @@ fun ProfileScreen() {
     }
 }
 
-// Helper to draw "Flores Nube" (Gypsophila)
-// Clusters of tiny white dots on thin stems
-fun DrawScope.drawBabyBreathCluster(center: Offset) {
+// Helper to draw a "Bouquet" of Flores Nube
+fun DrawScope.drawBouquet(center: Offset) {
     val stemColor = Color(0xFFA5D6A7) // Light Green
     val flowerColor = Color.White
     val shadowColor = Color(0xFFE0E0E0)
     
     val rnd = Random(center.hashCode())
 
-    // Draw Stems
-    for (i in 0..15) {
+    // Más denso y con más variación para parecer un ramo
+    for (i in 0..25) { // Más tallos
         val angle = rnd.nextFloat() * 6.28f
-        val length = 30f + rnd.nextFloat() * 40f
+        val length = 20f + rnd.nextFloat() * 50f
         val endX = center.x + kotlin.math.cos(angle) * length
         val endY = center.y + kotlin.math.sin(angle) * length
         
+        // Tallos curvos (simulado con líneas por ahora)
         drawLine(
             color = stemColor,
             start = center,
             end = Offset(endX, endY),
-            strokeWidth = 2f
+            strokeWidth = 2.5f
         )
         
-        // Draw tiny flowers (blooms) at end
+        // Cluster de flores al final del tallo
         drawCircle(
             color = shadowColor,
-            radius = 6f,
+            radius = 7f, // Sombra más grande
             center = Offset(endX + 2f, endY + 2f)
         )
         drawCircle(
             color = flowerColor,
-            radius = 5f,
+            radius = 6f, // Flor principal
             center = Offset(endX, endY)
         )
         
-        // Some flowers along the stem
-        if (rnd.nextBoolean()) {
-            val midX = (center.x + endX) / 2
-            val midY = (center.y + endY) / 2
-            drawCircle(flowerColor, radius = 4f, center = Offset(midX, midY))
+        // Flores satélite alrededor de la principal
+        repeat(3) {
+            val satOffsetX = (rnd.nextFloat() - 0.5f) * 12f
+            val satOffsetY = (rnd.nextFloat() - 0.5f) * 12f
+            drawCircle(flowerColor, radius = 3.5f, center = Offset(endX + satOffsetX, endY + satOffsetY))
         }
     }
 }
