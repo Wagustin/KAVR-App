@@ -93,9 +93,9 @@ fun ProfileScreen() {
                     text = "Para ti, Kitkat",
                     fontFamily = FontFamily.Cursive,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp, // Slightly smaller
+                    fontSize = 34.sp, // A little bigger
                     color = Color.Black,
-                    modifier = Modifier.padding(bottom = 8.dp) // Reduced padding
+                    modifier = Modifier.padding(bottom = 16.dp) // More spacing
                 )
                 
                 // Poem Body
@@ -108,20 +108,20 @@ fun ProfileScreen() {
                            "Feliz cumpleaños 💖\n\n" +
                            "Esta app existe porque tú existes en mi vida,\n",
                     fontFamily = FontFamily.Serif,
-                    fontSize = 18.sp, // Smaller font
-                    lineHeight = 26.sp, // Tighter lines
+                    fontSize = 20.sp, // Bigger as requested
+                    lineHeight = 28.sp, // Good spacing
                     textAlign = TextAlign.Center,
                     color = Color(0xFF424242)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp)) // Reduced spacer
+                Spacer(modifier = Modifier.height(24.dp)) // More separation
 
                 // Signature
                 Text(
                     text = "siempre tuyo,\nwagustincito",
                     fontFamily = FontFamily.Cursive,
-                    fontSize = 30.sp, // Slightly larger
-                    textAlign = TextAlign.Center, // Center align looks better usually
+                    fontSize = 32.sp, // Bigger signature
+                    textAlign = TextAlign.Center,
                     color = Color.Black,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
