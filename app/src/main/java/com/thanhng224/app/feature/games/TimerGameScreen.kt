@@ -21,7 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -196,17 +196,6 @@ fun TimerGameScreen(navController: NavController) {
             GridBackground()
 
             // 2. MAIN LAYOUT
-            if (gameState == GameState.COUNTDOWN) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)).zIndex(10f), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "$countdownValue",
-                        fontSize = 120.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-            }
-
             if (players == 1) {
                 // SINGLE PLAYER LAYOUT (Centered)
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -308,6 +297,18 @@ fun TimerGameScreen(navController: NavController) {
                             }
                         )
                     }
+                }
+            }
+
+            // 3. COUNTDOWN OVERLAY (Last -> Top)
+            if (gameState == GameState.COUNTDOWN) {
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "$countdownValue",
+                        fontSize = 120.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
             }
         }
