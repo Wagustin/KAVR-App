@@ -26,20 +26,24 @@ import kotlin.random.Random
 @Composable
 fun ProfileScreen() {
     // Generate random flower positions once
-    val flowerClusters = remember { List(4) { Random.nextFloat() } } 
+    val flowerClusters = remember { List(4) { Random.nextFloat() } }
+
+    val PaperColor = Color(0xFFFDFBF7) // Define PaperColor here
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF3E2723)), // Dark Wood Background
+            .background(Color(0xFF3E2723)) // Dark Wood Background
+            .padding(top = 48.dp, bottom = 100.dp, start = 16.dp, end = 16.dp), // Más margen vertical para no chocar con barras
         contentAlignment = Alignment.Center
     ) {
-        // Paper Sheet
+        // --- EL PAPEL (Carta) ---
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.85f)
-                .background(Color(0xFFFDFBF7)) // Off-white paper color
+                .fillMaxSize() // Ahora llena el espacio reducido por el padding padre
+                .clip(RoundedCornerShape(4.dp))
+                .background(PaperColor)
+                .padding(24.dp) // Margen interno del papel
                 .drawBehind {
                     val width = size.width
                     val height = size.height
