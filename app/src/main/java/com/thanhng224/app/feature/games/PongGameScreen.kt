@@ -176,18 +176,25 @@ fun PongGameLoop(
     var aiTargetX by remember { mutableFloatStateOf(0.5f) }
     var lastAiCalcTime by remember { mutableLongStateOf(0L) }
 
+    // Speed Multiplier state for Ramp Up
+    var speedMultiplier by remember { mutableFloatStateOf(1.0f) }
+
     // Game Loop
     LaunchedEffect(canvasSize) {
         if (canvasSize.width == 0) return@LaunchedEffect
         
-        // Reset Ball Center
+        // Reset Ball
         ballPos = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
         ballVel = Offset(INITIAL_SPEED * (if(Random.nextBoolean()) 1 else -1), INITIAL_SPEED)
+        speedMultiplier = 1.0f
 
         while (true) {
             withFrameNanos { time ->
                  val w = canvasSize.width.toFloat()
                 val h = canvasSize.height.toFloat()
+                
+                // Effective Speed
+                val currentSpeedScale = speedMultiplier
                 
                 // --- ADVANCED AI LOGIC (KAT) ---
                 if (mode == 1) {
@@ -216,8 +223,8 @@ fun PongGameLoop(
                         if (time - lastAiCalcTime > aiReactionDelay) {
                              // Predict impact X
                              val distY = ballPos.y - 50f // Dist to top paddle
-                             val timeToHit = kotlin.math.abs(distY / ballVel.y)
-                             var futureX = ballPos.x + (ballVel.x * timeToHit)
+                             val timeToHit = kotlin.math.abs(distY / (ballVel.y * currentSpeedScale))
+                             var futureX = ballPos.x + (ballVel.x * currentSpeedScale * timeToHit)
                              
                              // Handle Bounces (Simple Reflection logic approximation)
                              // If futureX outside [0, w], reflect it.
@@ -247,7 +254,7 @@ fun PongGameLoop(
                     paddleTopX = paddleTopX.coerceIn(0f, 1f)
                 }
 
-                var newPos = ballPos + ballVel
+                var newPos = ballPos + (ballVel * currentSpeedScale)
                 var newVel = ballVel
                 
                 // Wall Collisions (Left/Right)
@@ -281,14 +288,18 @@ fun PongGameLoop(
                 // Check Collisions
                 if (ballVel.y < 0 && ballRect.overlaps(topPaddleRect)) {
                     // Hit Top
-                    newVel = newVel.copy(y = abs(newVel.y) * 1.05f) // Speed up and bounce down
+                    newVel = newVel.copy(y = abs(newVel.y)) // Speed up handled by multiplier
                     val hitOffset = (newPos.x - topPaddleRect.center.x) / (pW/2)
                     newVel = newVel.copy(x = newVel.x + hitOffset * 5f)
+                    // RAMP UP SPEED
+                    speedMultiplier += 0.05f 
                 } else if (ballVel.y > 0 && ballRect.overlaps(botPaddleRect)) {
                     // Hit Bottom
-                    newVel = newVel.copy(y = -abs(newVel.y) * 1.05f) // Speed up and bounce up
+                    newVel = newVel.copy(y = -abs(newVel.y)) 
                      val hitOffset = (newPos.x - botPaddleRect.center.x) / (pW/2)
                     newVel = newVel.copy(x = newVel.x + hitOffset * 5f)
+                    // RAMP UP SPEED
+                    speedMultiplier += 0.05f
                 }
 
                 // Scoring (Top/Bottom Walls)
@@ -297,7 +308,7 @@ fun PongGameLoop(
                 ballPos = newPos
                 ballVel = newVel.copy(
                     x = newVel.x.coerceIn(-25f, 25f),
-                    y = newVel.y.coerceIn(-30f, 30f) // Cap speed
+                    y = newVel.y.coerceIn(-30f, 30f) // Base cap (multiplier applies on top)
                 )
             }
         }
@@ -311,10 +322,12 @@ fun PongGameLoop(
                 // Top Missed -> Bottom (Agus) Wins point
                 onScoreUpdate(currentScores.copy(second = currentScores.second + 1))
                 ballPos = Offset(canvasSize.width/2f, h/2f) 
+                speedMultiplier = 1.0f // Reset Speed
             } else if (ballPos.y > h) {
                 // Bottom Missed -> Top (Kat) Wins point
                  onScoreUpdate(currentScores.copy(first = currentScores.first + 1))
                  ballPos = Offset(canvasSize.width/2f, h/2f)
+                 speedMultiplier = 1.0f // Reset Speed
             }
         }
     }

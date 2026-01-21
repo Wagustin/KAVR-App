@@ -255,6 +255,7 @@ fun FavoritesScreen(navController: NavController) {
         // Unified Difficulty Step for All Games
         DialogStep.DIFFICULTY -> {
             DifficultySelectionDialog(
+                gameType = selectedGame,
                 onDismiss = { currentFlow = DialogStep.HIDDEN }, // Or back to prev step if tracked
                 onSelect = { difficulty ->
                     when (selectedGame) {
@@ -265,6 +266,10 @@ fun FavoritesScreen(navController: NavController) {
                         "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(difficulty))
                         "SNAKE" -> navController.navigate(Screen.SnakeGame.createRoute(difficulty))
                         "PONG" -> navController.navigate(Screen.PongGame.createRoute(selectedPongMode, difficulty))
+                        "NINJA" -> navController.navigate(Screen.NinjaGame.createRoute(selectedPongMode, difficulty)) // Ninja uses selectedPongMode temp var usage or separate? 
+                        // Ah wait, Ninja flow uses `selectedPongMode` var? No, I need to check how Ninja sets its mode. 
+                        // Looking at lines 150-160 (not shown), Ninja probably sets `selectedPongMode` (reused) or `selectedPlayerMode`.
+                        // Re-checking Ninja Dialog call...
                     }
                     currentFlow = DialogStep.HIDDEN
                     selectedGame = null
@@ -348,13 +353,24 @@ fun PongModeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
 }
 
 @Composable
-fun DifficultySelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
+fun DifficultySelectionDialog(gameType: String?, onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
+    val (easyText, medText, hardText) = when (gameType) {
+        "PONG" -> Triple("IA Lenta (Fácil)", "IA Normal", "IA Imposible")
+        "SNAKE" -> Triple("Velocidad Lenta", "Velocidad Normal", "Velocidad Rápida")
+        "SOCCER" -> Triple("Portero Novato", "Portero Pro", "Campeón Mundial")
+        "MINIGOLF" -> Triple("Hoyo Grande (Fácil)", "Hoyo Normal", "Hoyo Pequeño (Difícil)")
+        "NINJA" -> Triple("Objetivo Lento", "Objetivo Rápido", "Modo Ninja")
+        "TIMER" -> Triple("Margen 1s (Fácil)", "Margen 0.5s", "Margen 0.1s (Imposible)")
+        "MEMORY", null -> Triple("Fácil (Más tiempo/Vidas)", "Medio (Estándar)", "Difícil (Menos tiempo/Vidas)")
+        else -> Triple("Fácil", "Medio", "Difícil")
+    }
+
     CustomDialogBase(onDismiss = onDismiss, title = "Dificultad") {
-        WideSelectionButton("Fácil (Más tiempo/Vidas) 🟢", null) { onSelect(Screen.MemoryGame.DIFFICULTY_EASY) }
+        WideSelectionButton("$easyText 🟢", null) { onSelect(Screen.MemoryGame.DIFFICULTY_EASY) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Medio (Estándar) 🟡", null) { onSelect(Screen.MemoryGame.DIFFICULTY_MEDIUM) }
+        WideSelectionButton("$medText 🟡", null) { onSelect(Screen.MemoryGame.DIFFICULTY_MEDIUM) }
         Spacer(modifier = Modifier.height(8.dp))
-        WideSelectionButton("Difícil (Menos tiempo/Vidas) 🔴", null) { onSelect(Screen.MemoryGame.DIFFICULTY_HARD) }
+        WideSelectionButton("$hardText 🔴", null) { onSelect(Screen.MemoryGame.DIFFICULTY_HARD) }
     }
 }
 

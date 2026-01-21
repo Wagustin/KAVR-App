@@ -81,6 +81,9 @@ fun SnakeGameScreen(
             gameState = gameState,
             snakeBody = snakeBody,
             food = food,
+            foodEmoji = viewModel.foodEmoji.collectAsState().value,
+            currentDirection = viewModel.getCurrentDirection(),
+            isHealthyMode = viewModel.isHealthyMode.collectAsState().value,
             onDirectionChange = { viewModel.changeDirection(it) },
             onStartGame = { viewModel.startGame() }
         )
@@ -102,9 +105,32 @@ private fun SnakeBoard(
     gameState: GameState,
     snakeBody: List<Point>,
     food: Point,
+    foodEmoji: String,
+    currentDirection: Direction,
+    isHealthyMode: Boolean,
     onDirectionChange: (Direction) -> Unit,
     onStartGame: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
+    // --- LOAD SNAKE HEAD IMAGES ---
+    // We try to load 4 direction images: head_up, head_down, head_left, head_right
+    // If not found, fall back to default shape
+    var headUp by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var headDown by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var headLeft by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var headRight by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            fun load(name: String) = loadBitmapFromFolder(context, "snake/$name")
+            headUp = load("head_up")
+            headDown = load("head_down")
+            headLeft = load("head_left")
+            headRight = load("head_right")
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -129,17 +155,37 @@ private fun SnakeBoard(
                 }
             }
     ) {
+        // HEALTHY MODE VISUALS
+        val borderColor = if (isHealthyMode) androidx.compose.animation.animateColorAsState(
+            targetValue = if(System.currentTimeMillis() % 500 < 250) Color.Yellow else Color(0xFFFFD700),
+            label = "flash"
+        ).value else Color.Transparent
+        
+        if (isHealthyMode) {
+            Box(Modifier.fillMaxSize().background(Color.Yellow.copy(alpha=0.1f)).androidx.compose.foundation.border(4.dp, borderColor))
+        }
+
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cellSize = size.width / GRID_SIZE
             val cellPx = size.width / GRID_SIZE
+            
+            // Text Paint for Emojis
+            val textPaint = android.graphics.Paint().apply {
+                textSize = cellPx * 0.8f
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
 
             // 1. CHECKERBOARD BACKGROUND
             val darkGrass = Color(0xFF66BB6A)
             val lightGrass = Color(0xFF81C784)
+            val goldenGrass = Color(0xFFFFEB3B).copy(alpha=0.3f)
             
             for (i in 0 until GRID_SIZE) {
                 for (j in 0 until GRID_SIZE) {
-                    val color = if ((i + j) % 2 == 0) lightGrass else darkGrass
+                    val isEven = (i + j) % 2 == 0
+                    var color = if (isEven) lightGrass else darkGrass
+                    if (isHealthyMode && isEven) color = androidx.compose.ui.graphics.Color.Yellow.copy(alpha=0.2f)
+                    
                     drawRect(
                         color = color,
                         topLeft = Offset(i * cellPx, j * cellPx),
@@ -158,24 +204,45 @@ private fun SnakeBoard(
                 val center = Offset(topLeft.x + cellPx/2, topLeft.y + cellPx/2)
                 
                 if (isHead) {
-                    // Head shape (Rounded)
-                    drawRoundRect(
-                        color = color,
-                        topLeft = topLeft,
-                        size = androidx.compose.ui.geometry.Size(cellPx, cellPx),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(cellPx/2, cellPx/2)
-                    )
+                    // Try to use Bitmap
+                    val bitmap = when(currentDirection) {
+                        Direction.UP -> headUp
+                        Direction.DOWN -> headDown
+                        Direction.LEFT -> headLeft
+                        Direction.RIGHT -> headRight
+                    } ?: headDown // Fallback to headDown or whatever available? Or shape
                     
-                    // Eyes (White + Black pupil)
-                    // Determine direction based on previous body part or default?
-                    // Simplified: Just put two eyes on top
-                    drawCircle(Color.White, radius = cellPx * 0.15f, center = Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
-                    drawCircle(Color.White, radius = cellPx * 0.15f, center = Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
-                    drawCircle(Color.Black, radius = cellPx * 0.07f, center = Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
-                    drawCircle(Color.Black, radius = cellPx * 0.07f, center = Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
-                    
+                    if (bitmap != null) {
+                         drawIntoCanvas { canvas ->
+                           val rect = androidx.compose.ui.geometry.Rect(topLeft, androidx.compose.ui.geometry.Size(cellPx, cellPx))
+                           // Clip to circle
+                           val path = androidx.compose.ui.graphics.Path().apply { addOval(rect) }
+                           canvas.save()
+                           canvas.clipPath(path)
+                           canvas.nativeCanvas.drawBitmap(
+                               bitmap, 
+                               null, 
+                               android.graphics.Rect(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt()), 
+                               null
+                           )
+                           canvas.restore()
+                        }
+                    } else {
+                        // FALLBACK HEAD
+                        drawRoundRect(
+                            color = color,
+                            topLeft = topLeft,
+                            size = androidx.compose.ui.geometry.Size(cellPx, cellPx),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(cellPx/2, cellPx/2)
+                        )
+                        // Eyes
+                        drawCircle(Color.White, radius = cellPx * 0.15f, center = Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
+                        drawCircle(Color.White, radius = cellPx * 0.15f, center = Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
+                        drawCircle(Color.Black, radius = cellPx * 0.07f, center = Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
+                        drawCircle(Color.Black, radius = cellPx * 0.07f, center = Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
+                    }
                 } else {
-                    // Body segment (Slightly smaller for style)
+                    // Body segment
                     drawRoundRect(
                         color = color,
                         topLeft = Offset(topLeft.x + 2f, topLeft.y + 2f),
@@ -185,19 +252,15 @@ private fun SnakeBoard(
                 }
             }
 
-            // 3. FOOD (Apple)
+            // 3. FOOD (Emoji)
             val foodCenter = Offset((food.first * cellPx) + (cellPx / 2), (food.second * cellPx) + (cellPx / 2))
-            drawCircle(
-                color = Color(0xFFE53935), // Red Apple
-                radius = cellPx * 0.4f,
-                center = foodCenter
-            )
-            // Leaf
-            drawCircle(
-                color = Color(0xFF4CAF50),
-                radius = cellPx * 0.15f,
-                center = Offset(foodCenter.x + cellPx*0.2f, foodCenter.y - cellPx*0.3f)
-            )
+            
+            drawIntoCanvas { canvas ->
+                val xPos = (food.first * cellPx) + (cellPx / 2)
+                val yPos = (food.second * cellPx) + (cellPx / 2) - ((textPaint.descent() + textPaint.ascent()) / 2)
+                
+                canvas.nativeCanvas.drawText(foodEmoji, xPos, yPos, textPaint)
+            }
         }
 
         // INITIAL MESSAGE
