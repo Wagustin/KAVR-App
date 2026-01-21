@@ -277,16 +277,26 @@ fun MemoryCardItem(card: MemoryCard, onClick: () -> Unit) {
                     .fillMaxSize()
                     .graphicsLayer { rotationY = 180f },
                 shape = RoundedCornerShape(8.dp),
-                color = card.color,
+                color = Color.White,
                 shadowElevation = 4.dp,
-                border = BorderStroke(2.dp, Color.Black.copy(alpha = 0.1f))
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
+                 // FOTO
+                 androidx.compose.foundation.Image(
+                     painter = androidx.compose.ui.res.painterResource(id = card.imageRes),
+                     contentDescription = null,
+                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                     modifier = Modifier.fillMaxSize()
+                 )
+
                 if (card.isMatched) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.4f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✓", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.headlineLarge)
+                        Text("✓", color = Color.Green, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                     }
                 }
             }

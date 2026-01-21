@@ -165,10 +165,16 @@ fun App(
                         ) {
                              com.thanhng224.app.feature.games.TimerGameScreen(navController)
                         }
-                        composable(Screen.PongGame.route) {
+                        composable(
+                             route = Screen.PongGame.route,
+                             arguments = listOf(androidx.navigation.navArgument("mode") { type = androidx.navigation.NavType.IntType })
+                        ) {
                              com.thanhng224.app.feature.games.PongGameScreen(navController)
                         }
-                        composable(Screen.NinjaGame.route) {
+                        composable(
+                            route = Screen.NinjaGame.route,
+                            arguments = listOf(androidx.navigation.navArgument("mode") { type = androidx.navigation.NavType.IntType })
+                        ) {
                              com.thanhng224.app.feature.games.NinjaGameScreen(navController)
                         }
                         composable(

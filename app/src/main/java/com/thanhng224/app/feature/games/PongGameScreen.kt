@@ -57,7 +57,8 @@ const val INITIAL_SPEED = 10f
 @Composable
 fun PongGameScreen(navController: NavController) {
     val context = LocalContext.current
-    
+    val mode = navController.currentBackStackEntry?.arguments?.getInt("mode") ?: 0 // 0=2P, 1=1P (AI)
+
     // --- STATE ---
     var scores by remember { mutableStateOf(0 to 0) } // Top (Kat) vs Bottom (Agus)
     
@@ -76,7 +77,7 @@ fun PongGameScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Love Pong", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text(if(mode==1) "Love Pong (Solo)" else "Love Pong (Versus)", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -96,6 +97,7 @@ fun PongGameScreen(navController: NavController) {
                 .background(Color(0xFF1A1A2E))
         ) {
             PongGameLoop(
+                mode = mode,
                 agusBitmap = agusBitmap,
                 katBitmap = katBitmap,
                 currentScores = scores,
@@ -145,6 +147,7 @@ fun loadBitmapFromFolder(context: Context, folderName: String): Bitmap? {
 
 @Composable
 fun PongGameLoop(
+    mode: Int,
     agusBitmap: Bitmap?,
     katBitmap: Bitmap?,
     currentScores: Pair<Int, Int>,
@@ -176,6 +179,14 @@ fun PongGameLoop(
                 val w = canvasSize.width.toFloat()
                 val h = canvasSize.height.toFloat()
                 
+                // AI LOGIC (KAT - Top Player)
+                if (mode == 1) {
+                    val targetX = ballPos.x / w
+                    // Simple Lerp for AI movement
+                    paddleTopX += (targetX - paddleTopX) * 0.05f 
+                    paddleTopX = paddleTopX.coerceIn(0f, 1f)
+                }
+
                 var newPos = ballPos + ballVel
                 var newVel = ballVel
                 
@@ -258,10 +269,17 @@ fun PongGameLoop(
                     val h = size.height
                     val y = change.position.y
                     
-                    // Simple input split: Top half controls top, bottom half controls bottom
-                    if (y < h / 2) {
-                        paddleTopX = (paddleTopX + dragAmount.x / w).coerceIn(0f, 1f)
+                    if (mode == 0) {
+                        // 2 Player Mode (Split Screen)
+                        if (y < h / 2) {
+                            paddleTopX = (paddleTopX + dragAmount.x / w).coerceIn(0f, 1f)
+                        } else {
+                            paddleBottomX = (paddleBottomX + dragAmount.x / w).coerceIn(0f, 1f)
+                        }
                     } else {
+                        // 1 Player Mode (AI)
+                        // User only controls Bottom Paddle
+                        // Can drag anywhere (or restrict to bottom half? Let's allow full screen control for better UX)
                         paddleBottomX = (paddleBottomX + dragAmount.x / w).coerceIn(0f, 1f)
                     }
                 }

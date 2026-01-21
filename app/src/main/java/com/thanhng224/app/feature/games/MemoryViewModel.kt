@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class MemoryCard(val id: Int, val color: Color, val isFaceUp: Boolean = false, val isMatched: Boolean = false)
+data class MemoryCard(val id: Int, val imageRes: Int, val isFaceUp: Boolean = false, val isMatched: Boolean = false)
 
 data class MemoryUiState(
     val cards: List<MemoryCard> = emptyList(),
@@ -40,24 +40,23 @@ class MemoryViewModel @Inject constructor(
     private var timerJob: Job? = null
     private var isProcessing = false // Evita clicks múltiples durante la animación de error
 
-    // Paleta de colores vibrantes
-    private val colors = listOf(
-        Color(0xFFF44336), // Red
-        Color(0xFF2196F3), // Blue
-        Color(0xFF4CAF50), // Green
-        Color(0xFFFFEB3B), // Yellow
-        Color(0xFF00BCD4), // Cyan
-        Color(0xFFE91E63), // Pink
-        Color(0xFFFF9800), // Orange
-        Color(0xFF9C27B0), // Purple
-        Color(0xFF795548), // Brown
-        Color(0xFF607D8B), // Blue Grey
-        Color(0xFF8BC34A), // Light Green
-        Color(0xFF3F51B5), // Indigo
-        Color(0xFF009688), // Teal
-        Color(0xFFFFC107), // Amber
-        Color(0xFF673AB7), // Deep Purple
-        Color(0xFFCDDC39)  // Lime
+    // Lista de recursos de fotos (Copiado de MemoriesViewModel + R.drawable prefix)
+    // Asumimos que los imports de R están presentes o los agregamos.
+    private val photoResources = listOf(
+        com.thanhng224.app.R.drawable.img_0707,
+        com.thanhng224.app.R.drawable.img_0847,
+        com.thanhng224.app.R.drawable.img_1025,
+        com.thanhng224.app.R.drawable.img_1045,
+        com.thanhng224.app.R.drawable.img_1048,
+        com.thanhng224.app.R.drawable.img_1508,
+        com.thanhng224.app.R.drawable.img_1812,
+        com.thanhng224.app.R.drawable.img_1978,
+        com.thanhng224.app.R.drawable.img_1981,
+        com.thanhng224.app.R.drawable.img_2136,
+        com.thanhng224.app.R.drawable.img_2137,
+        com.thanhng224.app.R.drawable.img_2149,
+        com.thanhng224.app.R.drawable.kitkatq1,
+        com.thanhng224.app.R.drawable.kitkatq2
     )
 
     // Argumentos
@@ -77,9 +76,12 @@ class MemoryViewModel @Inject constructor(
         // 1. Configurar Cartas: SIEMPRE 24 cartas (12 pares) para 6x4
         val nbPairs = 12
         
-        val selectedColors = colors.shuffled().take(nbPairs) 
-        val gameCards = (selectedColors + selectedColors).shuffled().mapIndexed { index, color ->
-            MemoryCard(index, color)
+        // Seleccionar 12 fotos al azar
+        val selectedPhotos = photoResources.shuffled().take(nbPairs)
+        
+        // Duplicar y barajar
+        val gameCards = (selectedPhotos + selectedPhotos).shuffled().mapIndexed { index, resId ->
+            MemoryCard(index, resId)
         }
 
         // 2. Configurar Reglas según Dificultad
@@ -151,7 +153,7 @@ class MemoryViewModel @Inject constructor(
             val firstId = flippedCardId!!
             val firstCard = currentCards.find { it.id == firstId }!!
 
-            if (firstCard.color == card.color) {
+            if (firstCard.imageRes == card.imageRes) {
                 // -> ACIERTO
                 _state.update { state ->
                     val newCards = state.cards.map { 

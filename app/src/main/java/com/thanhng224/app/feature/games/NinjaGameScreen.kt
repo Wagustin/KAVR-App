@@ -58,85 +58,104 @@ enum class KnifeState { FLYING, STUCK, REBOUND }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NinjaGameScreen(navController: NavController) {
-    
+    val mode = navController.currentBackStackEntry?.arguments?.getInt("mode") ?: 0 
+    // mode 0 = Versus (2P)
+    // mode 1 = Survival (1P)
+
     // --- STATE ---
-    var scores by remember { mutableStateOf(0 to 0) } // Top(P2) vs Bot(P1)
+    var scores by remember { mutableStateOf(0 to 0) } // Top(P2) vs Bot(P1) / Survival: (High Score, Current Score)
     var targetRotation by remember { mutableFloatStateOf(0f) }
-    
+    var rotationSpeed by remember { mutableFloatStateOf(0.03f) }
+    var gameOver by remember { mutableStateOf(false) }
+
     // Knives
     val knives = remember { mutableStateListOf<Knife>() }
     
     // Game Loop
-    LaunchedEffect(Unit) {
-        // Vary rotation speed?
-        var currentRotationSpeed = 0.03f
+    LaunchedEffect(gameOver, mode) {
+        if (gameOver) return@LaunchedEffect
+        
+        // Reset Logic on restart handled by UI toggle 
         
         while(true) {
             withFrameMillis { _ ->
                 // Rotate Target
-                targetRotation = (targetRotation + currentRotationSpeed) % (2 * PI.toFloat())
+                targetRotation = (targetRotation + rotationSpeed) % (2 * PI.toFloat())
                 
+                // Survival Mode Speed Up
+                if (mode == 1 && scores.second > 0 && scores.second % 5 == 0) {
+                     // rotationSpeed += 0.0001f // Gradual speed up? 
+                     // Kept simple for now
+                }
+
                 // Update Knives
                 val iterator = knives.iterator()
                 while(iterator.hasNext()) {
                     val k = iterator.next()
                     
                     if (k.state == KnifeState.FLYING) {
-                        // Move closer to center
-                        // P1 (Bot) moves UP (distance decreases from H/2 to 0 logic? No, let's track radial dist)
-                        // Actually easier: Track absolute position? No, radial is easier for rotation.
-                        // Let's use "Screen Y" for flying, convert to Radial when stuck.
-                        
-                        // Wait, simpler: All knives have a 'distance' from center.
-                        // P1 starts at +300 distance (Bottom), P2 at -300 (Top).
-                        // Flying reduces absolute distance to 0.
-                        
-                        if (k.owner == 0) { // Bottom Player
+                        if (k.owner == 0) { // Bottom Player / Single Player
                              k.distance -= THROW_SPEED
-                             if (k.distance <= TARGET_RADIUS_DP * 3) { // Hit Radius (approx 60dp * density ~ 180px)
-                                 // Check Collision with other Stuck Knives
-                                 if (checkCollision(k, knives, 0f)) {
-                                     k.state = KnifeState.REBOUND
-                                 } else {
-                                     k.state = KnifeState.STUCK
-                                     k.distance = TARGET_RADIUS_DP * 3 // Fix to edge
-                                     k.angle = (PI/2).toFloat() - targetRotation // Bottom is PI/2? No, Bottom is 90 deg (PI/2).
-                                     // Actually in Canvas, 0 is Right. 90 (PI/2) is Bottom.
-                                     // So hitting from bottom hits at PI/2 relative to screen.
-                                     // Relative to target: angle = PI/2 - currentTargetRotation
+                             if (k.distance <= TARGET_RADIUS_DP * 3) { 
+                                     // Collision logic
+                                     // In 1P (mode 1), check collision with ANY stuck knife
+                                     // In 2P (mode 0), only own rebound?
                                      
-                                     scores = scores.copy(second = scores.second + 1)
-                                 }
+                                     // We need accurate angle calculation
+                                     val hitAngle = (PI/2).toFloat() - targetRotation
+                                     
+                                     // NORMALIZE ANGLES to 0..2PI
+                                     val normLength = (TARGET_RADIUS_DP * 3 * PI * 2).toFloat() // Circumference approx
+                                     
+                                     // Check collision
+                                     var collided = false
+                                     if (mode == 1) {
+                                         // Survival: Rebound = Game Over
+                                         if (checkCollision(hitAngle, knives)) collided = true
+                                     } else {
+                                         // Versus: Just bounce off
+                                         // (Simplified for now)
+                                     }
+                                     
+                                     if (collided) {
+                                         k.state = KnifeState.REBOUND
+                                         if (mode == 1) {
+                                             gameOver = true
+                                         }
+                                     } else {
+                                         k.state = KnifeState.STUCK
+                                         k.distance = TARGET_RADIUS_DP * 3 
+                                         k.angle = hitAngle
+                                         scores = scores.copy(second = scores.second + 1)
+                                         
+                                         // Speed up rotation in Survival
+                                         if (mode == 1) {
+                                             if (Random.nextBoolean()) rotationSpeed = -rotationSpeed // Randomize direction
+                                             rotationSpeed *= 1.02f // 2% faster per hit
+                                         }
+                                     }
                              }
-                        } else { // Top Player
-                             k.distance -= THROW_SPEED // Moves from negative/far positive?
-                             // Let's say distance is always positive from center in logic, but rendered differently?
-                             // No, let's keep Signed Distance for Y.
-                             // Center = 0.
-                             // P1 starts at +H/2. P2 starts at -H/2.
-                             // Warning: P2 is Top. Canvas 0,0 is Top-Left. Center is W/2, H/2.
-                             // Let's work relative to Center (0,0).
+                        } else { // Top Player (Only in Mode 0)
+                             k.distance += THROW_SPEED // FIX: Was -= (bug)
+                             // dist starts negative (-800), moves to 0. 
+                             // Wait, distance checks:
+                             // Start: -800. 
+                             // Frame 1: -800 + 30 = -770. Correct. Approaching 0.
                              
-                             // P1 (Bottom) starts at y = +400. Moves to 0. Hit at +Radius.
-                             // P2 (Top) starts at y = -400. Moves to 0. Hit at -Radius.
-                             
-                             if (k.distance > -TARGET_RADIUS_DP * 3 && k.distance < 0) { // Top Hit
-                                 if (checkCollision(k, knives, PI.toFloat())) {
-                                      k.state = KnifeState.REBOUND
-                                 } else {
-                                     k.state = KnifeState.STUCK
-                                     k.distance = -TARGET_RADIUS_DP * 3 // Fix edge
-                                     k.angle = (3 * PI / 2).toFloat() - targetRotation // Top is 270 deg (3pi/2)
-                                     scores = scores.copy(first = scores.first + 1)
-                                 }
+                             if (k.distance >= -TARGET_RADIUS_DP * 3) {
+                                  // Top Hit Logic
+                                  // Hit Angle (Top is 3PI/2 270 deg)
+                                  val hitAngle = (3 * PI / 2).toFloat() - targetRotation
+                                  
+                                  k.state = KnifeState.STUCK
+                                  k.distance = -TARGET_RADIUS_DP * 3
+                                  k.angle = hitAngle
+                                  scores = scores.copy(first = scores.first + 1)
                              }
-                             
-                             if (k.owner == 1) k.distance += THROW_SPEED // Move DOWN (from neg to 0)
                         }
                     } else if (k.state == KnifeState.REBOUND) {
-                        // Fall away
-                        k.distance += 10f
-                        if (kotlin.math.abs(k.distance) > 1000f) iterator.remove()
+                        k.distance += 15f
+                        if (kotlin.math.abs(k.distance) > 2000f) iterator.remove()
                     }
                 }
             }
@@ -146,7 +165,7 @@ fun NinjaGameScreen(navController: NavController) {
     Scaffold(
         topBar = {
              TopAppBar(
-                title = { Text("Ninja Throw ⚔️", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text(if (mode == 1) "Survival Mode" else "Ninja Duel", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -157,26 +176,22 @@ fun NinjaGameScreen(navController: NavController) {
                 )
             )
         },
-        containerColor = Color(0xFF263238) // Dark Slate
+        containerColor = Color(0xFF263238) 
     ) { padding ->
         Box(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(Color(0xFF546E7A)) // Muted Teal Background
+                .background(Color(0xFF546E7A))
         ) {
-            // Background Bamboo
+            // Background
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
-                
-                // Draw Bamboo Stalks
-                val bambooColor = Color(0xFF37474F) // Darker
+                val bambooColor = Color(0xFF37474F)
                 val segmentHeight = 120f
-                
                 listOf(w * 0.1f, w * 0.9f, w * 0.05f, w * 0.95f).forEachIndexed { i, x ->
                     val width = if(i < 2) 40f else 25f
-                    // Segments
                     var y = -50f
                     while (y < h) {
                         drawRoundRect(
@@ -185,7 +200,6 @@ fun NinjaGameScreen(navController: NavController) {
                             size = Size(width, segmentHeight - 5f),
                             cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f)
                         )
-                        // Knot
                         drawRect(
                             color = Color(0xFF263238),
                             topLeft = Offset(x - width/2 - 5f, y + segmentHeight - 10f),
@@ -194,13 +208,9 @@ fun NinjaGameScreen(navController: NavController) {
                         y += segmentHeight
                     }
                 }
-                
-                // Clouds?
-                drawCircle(Color.White.copy(alpha=0.1f), radius = 150f, center = Offset(w*0.2f, h*0.1f))
-                 drawCircle(Color.White.copy(alpha=0.1f), radius = 200f, center = Offset(w*0.8f, h*0.9f))
             }
             
-            // Game Area
+            // Game Canvas
             Box(Modifier.fillMaxSize()) {
                 NinjaGameCanvas(
                     targetRotation = targetRotation,
@@ -208,57 +218,81 @@ fun NinjaGameScreen(navController: NavController) {
                 )
             }
             
-            // Controls (Tap Areas)
-            Column(Modifier.fillMaxSize()) {
-                // P2 Zone (Top)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize()
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            // P2 Throw
-                             knives.add(Knife(distance = -800f, angle = 0f, owner = 1))
-                        }
-                ) {
-                     Text("${scores.first}", fontSize = 60.sp, color = Color.White, modifier = Modifier.align(Alignment.TopCenter).padding(top=50.dp), fontWeight = FontWeight.Bold)
+            // Inputs
+            if (mode == 0) {
+                // VERSUS 2P
+                Column(Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                knives.add(Knife(distance = -800f, angle = 0f, owner = 1))
+                            }
+                    ) {
+                         Text("${scores.first}", fontSize = 60.sp, color = Color.White, modifier = Modifier.align(Alignment.TopCenter).padding(top=50.dp), fontWeight = FontWeight.Bold)
+                         // Rotation 180 for top player text?
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                knives.add(Knife(distance = 800f, angle = 0f, owner = 0))
+                            }
+                    ) {
+                         Text("${scores.second}", fontSize = 60.sp, color = Color.White, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom=50.dp), fontWeight = FontWeight.Bold)
+                    }
                 }
-                
-                // P1 Zone (Bottom)
-                Box(
+            } else {
+                // SURVIVAL 1P
+                 Box(
                     modifier = Modifier
-                        .weight(1f)
                         .fillMaxSize()
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            // P1 Throw
-                            knives.add(Knife(distance = 800f, angle = 0f, owner = 0))
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                            if (!gameOver) {
+                                knives.add(Knife(distance = 800f, angle = 0f, owner = 0))
+                            } else {
+                                // Reset
+                                knives.clear()
+                                scores = 0 to 0
+                                rotationSpeed = 0.03f
+                                gameOver = false
+                            }
                         }
                 ) {
-                     Text("${scores.second}", fontSize = 60.sp, color = Color.White, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom=50.dp), fontWeight = FontWeight.Bold)
+                     Text("${scores.second}", fontSize = 100.sp, color = Color.White.copy(alpha=0.5f), modifier = Modifier.align(Alignment.Center).padding(bottom=200.dp), fontWeight = FontWeight.Bold)
+                     
+                     if (gameOver) {
+                         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.6f)), contentAlignment = Alignment.Center) {
+                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                 Text("GAME OVER", fontSize = 50.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                                 Text("Score: ${scores.second}", fontSize = 30.sp, color = Color.White)
+                                 Text("Tap to Retry", fontSize = 20.sp, color = Color.Gray)
+                             }
+                         }
+                     }
                 }
             }
         }
     }
 }
 
-fun checkCollision(k: Knife, knives: List<Knife>, hitAngleOffset: Float): Boolean {
-    // Check if any STUCK knife is too close to our hit angle
-    // Our hit angle relative to target is k.angle (which we are about to set)
-    // Actually we haven't set it yet. We need to calculate what it WOULD be.
-    // For P1 (Bottom), Hit Angle is PI/2 (relative to screen).
-    // Target Rotation is T.
-    // Knife Angle on Target = PI/2 - T.
+fun checkCollision(hitAngle: Float, knives: List<Knife>): Boolean {
+    // Normalise hit angle to 0..2PI
+    val normalizedHit = (hitAngle % (2 * PI.toFloat())).let { if (it < 0) it + 2 * PI.toFloat() else it }
     
-    // Simple distance check on angles
-    // Not implemented fully for this demo/MVP, assuming generous hit box or no collision for now to ensure fun.
-    // User asked to "recreate", usually this implies difficulty.
-    // Let's add basic proximity check.
-    return false
+    // Check against all STUCK knives
+    // Threshold: Knife Width / Circumference
+    // Approx 15 degrees (~0.26 rad)
+    val collisionThreshold = 0.25f 
+    
+    return knives.any { k ->
+        if (k.state == KnifeState.STUCK) {
+            val normalizedK = (k.angle % (2 * PI.toFloat())).let { if (it < 0) it + 2 * PI.toFloat() else it }
+            kotlin.math.abs(normalizedHit - normalizedK) < collisionThreshold
+        } else false
+    }
 }
 
 @Composable

@@ -53,7 +53,7 @@ import androidx.navigation.NavController
 import com.thanhng224.app.presentation.navigation.Screen
 
 private enum class DialogStep {
-    HIDDEN, PLAYERS, GAME_TYPE, GAME_TYPE_MEMORY, DIFFICULTY, SNAKE_MODE
+    HIDDEN, PLAYERS, GAME_TYPE, GAME_TYPE_MEMORY, DIFFICULTY, SNAKE_MODE, NINJA_MODE, PONG_MODE
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,8 +116,8 @@ fun FavoritesScreen(navController: NavController) {
                     icon = Icons.Default.Favorite, 
                     color = Color(0xFFE91E63),
                     onClick = { 
-                        // Direct navigation, no difficulty dialog needed for now
-                        navController.navigate(Screen.PongGame.route)
+                        selectedGame = "PONG"
+                        currentFlow = DialogStep.PONG_MODE
                     }
                 )
             }
@@ -128,7 +128,8 @@ fun FavoritesScreen(navController: NavController) {
                     icon = Icons.Default.Star, 
                     color = Color(0xFF263238),
                     onClick = { 
-                        navController.navigate(Screen.NinjaGame.route)
+                        selectedGame = "NINJA"
+                        currentFlow = DialogStep.NINJA_MODE
                     }
                 )
             }
@@ -163,6 +164,26 @@ fun FavoritesScreen(navController: NavController) {
 
     // --- MANEJO DE DIÁLOGOS (Flow) ---
     when (currentFlow) {
+        DialogStep.NINJA_MODE -> {
+            NinjaModeSelectionDialog(
+                onDismiss = { currentFlow = DialogStep.HIDDEN },
+                onSelect = { mode ->
+                    navController.navigate(Screen.NinjaGame.createRoute(mode))
+                    currentFlow = DialogStep.HIDDEN
+                }
+            )
+        }
+        
+        DialogStep.PONG_MODE -> {
+            PongModeSelectionDialog(
+                onDismiss = { currentFlow = DialogStep.HIDDEN },
+                onSelect = { mode ->
+                    navController.navigate(Screen.PongGame.createRoute(mode))
+                    currentFlow = DialogStep.HIDDEN
+                }
+            )
+        }
+        
         DialogStep.SNAKE_MODE -> {
             SnakeModeSelectionDialog(
                 onDismiss = { currentFlow = DialogStep.HIDDEN },
@@ -308,6 +329,15 @@ fun GameTypeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
 }
 
 @Composable
+fun PongModeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
+    CustomDialogBase(onDismiss = onDismiss, title = "Modo Love Pong") {
+        WideSelectionButton("Pareja (2 Jugadores) ❤️", Icons.Default.Favorite) { onSelect(0) }
+        Spacer(modifier = Modifier.height(8.dp))
+        WideSelectionButton("Solo vs Kat (AI) 🤖", Icons.Default.Person) { onSelect(1) }
+    }
+}
+
+@Composable
 fun DifficultySelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
     CustomDialogBase(onDismiss = onDismiss, title = "Dificultad") {
         WideSelectionButton("Fácil (Más tiempo/Vidas) 🟢", null) { onSelect(Screen.MemoryGame.DIFFICULTY_EASY) }
@@ -315,6 +345,15 @@ fun DifficultySelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
         WideSelectionButton("Medio (Estándar) 🟡", null) { onSelect(Screen.MemoryGame.DIFFICULTY_MEDIUM) }
         Spacer(modifier = Modifier.height(8.dp))
         WideSelectionButton("Difícil (Menos tiempo/Vidas) 🔴", null) { onSelect(Screen.MemoryGame.DIFFICULTY_HARD) }
+    }
+}
+
+@Composable
+fun NinjaModeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
+    CustomDialogBase(onDismiss = onDismiss, title = "Modo Ninja") {
+        WideSelectionButton("Duelo (2 Jugadores) ⚔️", Icons.Default.Person) { onSelect(0) }
+        Spacer(modifier = Modifier.height(8.dp))
+        WideSelectionButton("Supervivencia (Solo) 🎯", Icons.Default.Star) { onSelect(1) }
     }
 }
 
