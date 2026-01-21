@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import kotlin.math.max
+import kotlin.random.Random
+
 // --- TIPOS DE COMIDA ---
 enum class FoodType {
     JUNK, GOLDEN, HEALTHY
