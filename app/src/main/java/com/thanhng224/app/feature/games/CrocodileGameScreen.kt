@@ -1,28 +1,22 @@
 package com.thanhng224.app.feature.games
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -33,60 +27,70 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-// --- COLORS ---
-val CrocSkinDark = Color(0xFF2E7D32)
-val CrocSkinLight = Color(0xFF4CAF50)
-val CrocScaleColor = Color(0xFF1B5E20)
-val GumColor = Color(0xFFE57373)
-val ToothWhite = Color(0xFFFAFAFA)
-val ToothPressed = Color(0xFFBDBDBD) // Dirty/Pressed tooth
-val EyeColor = Color(0xFFFFEB3B)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrocodileGameScreen(navController: NavController) {
-    val difficulty = navController.currentBackStackEntry?.arguments?.getInt("difficulty") ?: 0
-    val numBadTeeth = difficulty + 1 
+    // --- COLORS (Toy Aesthetic) ---
+    val ToyGreenLight = Color(0xFF76FF03) // Bright Lime
+    val ToyGreenDark = Color(0xFF33691E)  // Darker Green for shadows/outline
+    val MouthRed = Color(0xFFC62828)      // Plastic Red
+    val ToothWhite = Color(0xFFF5F5F5)    // Plastic White
+    val ToothPressed = Color(0xFF9E9E9E)  // Grayed out
     
-    // 13 Teeth
-    var teeth by remember { mutableStateOf(List(13) { false }) } 
-    var badToothIndices by remember(numBadTeeth) { 
-        mutableStateOf(generateBadTeeth(numBadTeeth)) 
-    }
+    // --- GAME STATE ---
+    var teethState by remember { mutableStateOf(List(13) { false }) } // 13 Teeth
+    var badToothIndex by remember { mutableIntStateOf(Random.nextInt(13)) }
     var isGameOver by remember { mutableStateOf(false) }
+    var isMouthClosing by remember { mutableStateOf(false) }
+
+    // Animation: Jaw rotation
+    val jawAngle by animateFloatAsState(
+        targetValue = if (isMouthClosing) 45f else 0f, // 0 is open, 45 closes it down visually
+        animationSpec = tween(durationMillis = 300, easing = LinearEasing), label = "jawAngle"
+    )
     
-    // Animation for mouth closing
-    // 1f = Open, 0f = Closed/Bitten
-    val mouthOpenProgress by animateFloatAsState(
-        targetValue = if (isGameOver) 0f else 1f,
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 400f), label = "mouthAnim"
+    // Shake Effect on biting
+    val shakeOffset by animateFloatAsState(
+        targetValue = if (isMouthClosing) 10f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(50, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "shake"
     )
 
+    fun onToothClick(index: Int) {
+        if (isGameOver) return
+        
+        val newList = teethState.toMutableList()
+        newList[index] = true
+        teethState = newList
+        
+        if (index == badToothIndex) {
+            isMouthClosing = true
+            isGameOver = true
+            // Vibrate? Sound?
+        }
+    }
+
     fun resetGame() {
-        teeth = List(13) { false }
-        badToothIndices = generateBadTeeth(numBadTeeth)
+        teethState = List(13) { false }
+        badToothIndex = Random.nextInt(13)
         isGameOver = false
+        isMouthClosing = false
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crocodile Challenge", fontWeight = FontWeight.Bold) },
+                title = { Text("Croc Dentist", fontWeight = FontWeight.Black) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    IconButton(onClick = { resetGame() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reset")
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CrocSkinDark,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    containerColor = ToyGreenLight,
+                    titleContentColor = Color.Black
                 )
             )
         }
@@ -95,79 +99,64 @@ fun CrocodileGameScreen(navController: NavController) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(Color(0xFF81C784), Color(0xFFC8E6C9)))), // Swampy gradient
+                .background(Color(0xFFAED581)), // Softer Green Background
             contentAlignment = Alignment.Center
         ) {
-            
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 
-                // MAIN GAME AREA
+                // GAME AREA
                 Box(
-                    modifier = Modifier.size(360.dp, 400.dp),
+                    modifier = Modifier.size(360.dp, 500.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // 1. LOWER JAW (Base + Teeth)
-                    LowerJaw(
-                        modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-20).dp),
-                        teethState = teeth,
-                        onToothClick = { index ->
-                            if (!isGameOver && !teeth[index]) {
-                                if (badToothIndices.contains(index)) {
-                                    isGameOver = true
-                                } else {
-                                    val newTeeth = teeth.toMutableList()
-                                    newTeeth[index] = true
-                                    teeth = newTeeth
-                                }
-                            }
-                        }
+                    // LOWER JAW (Static base)
+                    ToyLowerJaw(
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        teethState = teethState,
+                        onToothClick = ::onToothClick,
+                        colors = ToyColors(ToyGreenLight, ToyGreenDark, MouthRed, ToothWhite, ToothPressed)
                     )
                     
-                    // 2. UPPER JAW (Rotates/Translates down)
-                    // Pivot is roughly at the back of the head
-                    UpperJaw(
+                    // UPPER JAW (Animated)
+                    // Pivot roughly at the back
+                    Box(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .offset(y = 40.dp) // Adjust initial position relative to lower jaw
+                            .offset(y = 80.dp) // Push down to hinge
                             .graphicsLayer {
-                                // Simple hinge logic: Rotate from "Open" (-40 deg) to "Closed" (0 deg) ?
-                                // Or purely translation for simplicity in Top-Down view?
-                                // User reference looked like a side/iso view head.
-                                // Let's simplify: Rotate the upper jaw around a back pivot.
-                                
-                                val openAngle = -45f
-                                val closedAngle = 5f // Slightly overlap
-                                rotationX = openAngle + (closedAngle - openAngle) * (1f - mouthOpenProgress)
-                                
-                                // Adjust Y to meet the lower jaw
-                                translationY = (1f - mouthOpenProgress) * 150f
-                            },
-                        isAngry = isGameOver
-                    )
+                                rotationX = jawAngle // Rotate down
+                                translationY = if(isMouthClosing) 150f else 0f // Move down to "snap"
+                                // Add Shake
+                                if (isMouthClosing) {
+                                    translationX = if (System.currentTimeMillis() % 100 > 50) 5f else -5f
+                                }
+                            }
+                    ) {
+                         ToyUpperJaw(colors = ToyColors(ToyGreenLight, ToyGreenDark, MouthRed, ToothWhite, ToothPressed))
+                    }
                 }
                 
-                Spacer(modifier = Modifier.height(40.dp))
-                
+                Spacer(modifier = Modifier.height(32.dp))
+
                 if (isGameOver) {
                     Text(
-                        "OUCH! \uD83E\uDDB7",
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFFD32F2F)
+                        "OUCH!", 
+                        style = MaterialTheme.typography.displayMedium, 
+                        color = Color.Red,
+                        fontWeight = FontWeight.Black
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { resetGame() },
-                        colors = ButtonDefaults.buttonColors(containerColor = CrocSkinDark)
+                        onClick = ::resetGame,
+                        colors = ButtonDefaults.buttonColors(containerColor = ToyGreenDark)
                     ) {
-                        Text("TRY AGAIN", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("TRY AGAIN", fontSize = 20.sp)
                     }
                 } else {
                     Text(
                         "Find the sore tooth...",
                         style = MaterialTheme.typography.titleLarge,
-                        color = Color(0xFF1B5E20),
-                        fontWeight = FontWeight.SemiBold
+                         fontWeight = FontWeight.Bold,
+                         color = Color(0xFF33691E)
                     )
                 }
             }
@@ -175,92 +164,148 @@ fun CrocodileGameScreen(navController: NavController) {
     }
 }
 
-// --- COMPONENTS ---
+// --- TOY COMPOSABLES ---
+
+data class ToyColors(val light: Color, val dark: Color, val red: Color, val tooth: Color, val pressed: Color)
 
 @Composable
-fun LowerJaw(
+fun ToyLowerJaw(
     modifier: Modifier = Modifier,
     teethState: List<Boolean>,
-    onToothClick: (Int) -> Unit
+    onToothClick: (Int) -> Unit,
+    colors: ToyColors
 ) {
-    Box(modifier = modifier.size(320.dp, 200.dp)) {
-        // Organic Jaw Shape
+    Box(modifier = modifier.size(320.dp, 220.dp)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
             
-            val path = Path().apply {
-                moveTo(w * 0.1f, h * 0.3f)
-                // Curve for the back left
-                quadraticTo(w * 0.05f, h * 0.8f, w * 0.2f, h * 0.9f)
-                // Bottom curve (Chin)
-                quadraticTo(w * 0.5f, h * 1.05f, w * 0.8f, h * 0.9f)
-                // Back right
-                quadraticTo(w * 0.95f, h * 0.8f, w * 0.9f, h * 0.3f)
-                // Inner mouth curve (Gum line placeholder)
-                quadraticTo(w * 0.5f, h * 0.45f, w * 0.1f, h * 0.3f)
-                close()
-            }
-            
-            drawPath(path, color = CrocSkinLight)
-            drawPath(path, color = CrocSkinDark, style = Stroke(width = 6f))
-            
-            // Texture Scales
-            for(i in 0..15) {
-                val x = w * (0.2f + Random.nextFloat() * 0.6f)
-                val y = h * (0.6f + Random.nextFloat() * 0.3f)
-                drawCircle(CrocScaleColor.copy(alpha=0.3f), radius = 5f + Random.nextFloat()*8f, center = Offset(x,y))
-            }
+            // 1. Green Rim (The plastic body)
+            // Draw simplified U shape for jaw body
+             drawArc(
+                color = colors.light,
+                startAngle = 0f,
+                sweepAngle = 180f,
+                useCenter = true,
+                topLeft = Offset(0f, 0f), // Fills bottom half roughly
+                size = Size(w, h * 1.8f) // Stretched
+            )
+             // Border
+             drawArc(
+                color = colors.dark,
+                startAngle = 0f,
+                sweepAngle = 180f,
+                useCenter = false,
+                topLeft = Offset(0f, 0f), 
+                size = Size(w, h * 1.8f),
+                style = Stroke(width = 8f)
+            )
 
-            // Gums
-            val gumPath = Path().apply {
-                moveTo(w * 0.15f, h * 0.35f)
-                quadraticTo(w * 0.5f, h * 0.55f, w * 0.85f, h * 0.35f)
-                // Thickness
-                quadraticTo(w * 0.5f, h * 0.75f, w * 0.15f, h * 0.35f) 
-            }
-            drawPath(gumPath, color = GumColor)
+            // 2. Red Interior (The Mouth)
+            drawArc(
+                color = colors.red,
+                startAngle = 0f,
+                sweepAngle = 180f,
+                useCenter = true,
+                topLeft = Offset(w * 0.1f, h * 0.1f), 
+                size = Size(w * 0.8f, h * 1.4f)
+            )
         }
         
-        // TEETH LAYOUT
-        // We place transparent clickables over the visual teeth drawn on canvas? 
-        // Or render individual Composables. Composables are easier for interaction.
-        Box(modifier = Modifier.fillMaxSize()) {
-            val radiusX = 130f
-            val radiusY = 70f
-            val centerX = 160.dp.value // Approx dp to px conversion is sketchy without density, but let's rely on Box sizing
-            // Let's use absolute logic inside a custom layout or fixed offsets.
-            // Fixed offsets for 13 teeth along a curve.
-            
-            teethState.forEachIndexed { index, isPressed ->
-                // Arc from 10 degrees to 170 degrees
-                val totalAngle = 160f
-                val startAngle = 10f
-                val anglePerTooth = totalAngle / (teethState.size - 1)
-                val angleDeg = 180f - (startAngle + index * anglePerTooth) // 170 down to 10
+        // 3. TEETH
+        // Arranged in a semi-circle inside the red area
+        Box(modifier = Modifier.fillMaxSize().padding(top = 40.dp)) {
+             teethState.forEachIndexed { index, isPressed ->
+                val totalAngle = 180f
+                val startAngle = 0f
+                val anglePerTooth = totalAngle / (teethState.size + 1)
+                
+                // Calculate position along arc
+                val angleDeg = 180f - (startAngle + (index + 1) * anglePerTooth)
                 val angleRad = Math.toRadians(angleDeg.toDouble())
                 
-                // Elliptical positioning
-                // These values need tuning to match the jaw drawing
-                val xOffset = 160.dp + (110.dp * cos(angleRad).toFloat()) - 15.dp // Center - width/2
-                val yOffset = 60.dp + (60.dp * sin(angleRad).toFloat()) - 10.dp
+                // Adjust radius to fit
+                val radiusX = 130.dp
+                val radiusY = 90.dp // flattened oval
                 
-                Tooth(
+                val xOffset = 145.dp + (radiusX.value * cos(angleRad).toFloat()).dp
+                val yOffset = 50.dp + (radiusY.value * sin(angleRad).toFloat()).dp
+                
+                ToyTooth(
                     modifier = Modifier
                         .offset(x = xOffset, y = yOffset)
-                        .size(30.dp, 36.dp),
+                        .size(24.dp, 32.dp)
+                        .graphicsLayer {
+                             rotationZ = 90f - angleDeg // Rotate to face outward
+                        },
                     isPressed = isPressed,
+                    colors = colors,
                     onClick = { onToothClick(index) }
                 )
-            }
+             }
         }
     }
 }
 
 @Composable
-fun Tooth(
+fun ToyUpperJaw(colors: ToyColors) {
+    Box(modifier = Modifier.size(340.dp, 200.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            
+            // 1. The Head (Lid)
+            val headPath = Path().apply {
+                // Top dome
+                moveTo(w * 0.1f, h * 0.6f)
+                cubicTo(
+                    w * 0.1f, h * 0.1f, 
+                    w * 0.9f, h * 0.1f, 
+                    w * 0.9f, h * 0.6f
+                )
+                // Snout ridges
+                quadraticTo(w * 0.8f, h * 0.5f, w * 0.7f, h * 0.6f)
+                quadraticTo(w * 0.6f, h * 0.55f, w * 0.5f, h * 0.6f) // Center dip
+                quadraticTo(w * 0.4f, h * 0.55f, w * 0.3f, h * 0.6f)
+                quadraticTo(w * 0.2f, h * 0.5f, w * 0.1f, h * 0.6f)
+                close()
+            }
+            
+            drawPath(path = headPath, color = colors.light)
+            drawPath(path = headPath, color = colors.dark, style = Stroke(width = 6f))
+
+            // 2. Eyes (Pop out)
+            // Left Eye
+            val eyeY = h * 0.25f
+            val eyeRadius = 35f
+            drawCircle(Color.White, radius = eyeRadius, center = Offset(w * 0.25f, eyeY))
+            drawCircle(Color.Black, radius = eyeRadius, center = Offset(w * 0.25f, eyeY), style = Stroke(width = 3f))
+            // Blue Iris
+            drawCircle(Color(0xFF29B6F6), radius = 18f, center = Offset(w * 0.25f + 5f, eyeY))
+            // Pupil
+            drawCircle(Color.Black, radius = 10f, center = Offset(w * 0.25f + 5f, eyeY))
+            // Reflection
+            drawCircle(Color.White, radius = 5f, center = Offset(w * 0.25f, eyeY - 8f))
+
+            // Right Eye
+             drawCircle(Color.White, radius = eyeRadius, center = Offset(w * 0.75f, eyeY))
+             drawCircle(Color.Black, radius = eyeRadius, center = Offset(w * 0.75f, eyeY), style = Stroke(width = 3f))
+             drawCircle(Color(0xFF29B6F6), radius = 18f, center = Offset(w * 0.75f - 5f, eyeY))
+             drawCircle(Color.Black, radius = 10f, center = Offset(w * 0.75f - 5f, eyeY))
+             drawCircle(Color.White, radius = 5f, center = Offset(w * 0.75f - 10f, eyeY - 8f))
+             
+             // Nostrils
+             drawOval(colors.dark, topLeft = Offset(w * 0.4f, h * 0.45f), size = Size(15f, 10f))
+             drawOval(colors.dark, topLeft = Offset(w * 0.55f, h * 0.45f), size = Size(15f, 10f))
+        }
+    }
+}
+
+@Composable
+fun ToyTooth(
     modifier: Modifier,
     isPressed: Boolean,
+    colors: ToyColors,
     onClick: () -> Unit
 ) {
     Box(
@@ -272,99 +317,22 @@ fun Tooth(
             )
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            val color = if (isPressed) ToothPressed else ToothWhite
+            val color = if (isPressed) colors.pressed else colors.tooth
             
-            // Triangular / Conical Shape
-            val path = Path().apply {
-                moveTo(0f, h) // Bottom Left
-                quadraticTo(w * 0.5f, -h * 0.2f, w, h) // Peak
-                close()
-            }
-            
-            drawPath(path, color)
-            drawPath(path, Color(0xFFE0E0E0), style = Stroke(width = 2f))
+            // Rounded Rectangle / Capsule Shape
+            drawRoundRect(
+                color = color,
+                cornerRadius = CornerRadius(15f, 15f),
+                size = size
+            )
+            // Border/Depth
+            drawRoundRect(
+                color = email_gray_border(),
+                cornerRadius = CornerRadius(15f, 15f),
+                size = size,
+                style = Stroke(width = 2f)
+            )
         }
     }
 }
-
-@Composable
-fun UpperJaw(
-    modifier: Modifier = Modifier,
-    isAngry: Boolean
-) {
-    Box(modifier = modifier.size(340.dp, 220.dp)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            
-            // Head Shape (Top View / Slight Perspective)
-            val path = Path().apply {
-                moveTo(w * 0.2f, h * 0.9f) // Jaw hinge left
-                // Snout Left
-                quadraticTo(w * 0.1f, h * 0.5f, w * 0.3f, h * 0.1f) 
-                // Snout Top
-                quadraticTo(w * 0.5f, h * 0.0f, w * 0.7f, h * 0.1f)
-                // Snout Right
-                quadraticTo(w * 0.9f, h * 0.5f, w * 0.8f, h * 0.9f)
-                // Back of head
-                quadraticTo(w * 0.5f, h * 0.8f, w * 0.2f, h * 0.9f)
-                close()
-            }
-            
-            drawPath(path, CrocSkinLight)
-            drawPath(path, CrocSkinDark, style = Stroke(width = 8f))
-            
-            // Texture Scales
-            for(i in 0..20) {
-                val x = w * (0.3f + Random.nextFloat() * 0.4f)
-                val y = h * (0.1f + Random.nextFloat() * 0.5f)
-                drawCircle(CrocScaleColor.copy(alpha=0.4f), radius = 4f + Random.nextFloat()*10f, center = Offset(x,y))
-            }
-            
-            // Eyes (Ridges)
-            drawOval(
-                color = CrocSkinDark,
-                topLeft = Offset(w * 0.15f, h * 0.45f),
-                size = Size(w * 0.15f, h * 0.15f)
-            )
-             drawOval(
-                color = CrocSkinDark,
-                topLeft = Offset(w * 0.7f, h * 0.45f),
-                size = Size(w * 0.15f, h * 0.15f)
-            )
-            
-            // Eyeballs
-            val eyeY = h * 0.48f
-            drawCircle(Color.White, radius = 18f, center = Offset(w * 0.225f, eyeY))
-            // Pupil
-            drawOval(
-                color = Color.Black,
-                topLeft = Offset(w * 0.225f - 4f, eyeY - 10f),
-                size = Size(8f, 20f)
-            )
-            
-            drawCircle(Color.White, radius = 18f, center = Offset(w * 0.775f, eyeY))
-             drawOval(
-                color = Color.Black,
-                topLeft = Offset(w * 0.775f - 4f, eyeY - 10f),
-                size = Size(8f, 20f)
-            )
-
-            // Nostrils
-            val nostrilColor = Color(0xFF1B5E20)
-            drawOval(nostrilColor, topLeft = Offset(w * 0.42f, h * 0.15f), size = Size(16f, 10f))
-             drawOval(nostrilColor, topLeft = Offset(w * 0.54f, h * 0.15f), size = Size(16f, 10f))
-        }
-    }
-}
-
-fun generateBadTeeth(count: Int): Set<Int> {
-    val bad = mutableSetOf<Int>()
-    val r = Random.Default
-    while (bad.size < count) {
-        bad.add(r.nextInt(13))
-    }
-    return bad
-}
+fun email_gray_border() = Color.LightGray
