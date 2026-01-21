@@ -35,9 +35,7 @@ sealed class Screen(val route: String, val titleRes: Int, val icon: ImageVector)
     }
 
     // NUEVOS JUEGOS
-    data object CrocodileGame : Screen("game_crocodile/{difficulty}", R.string.game_snake, Icons.Default.Gamepad) {
-        fun createRoute(difficulty: Int) = "game_crocodile/$difficulty"
-    }
+
 
     data object TimerGame : Screen("game_timer/{players}/{difficulty}", R.string.game_snake, Icons.Default.Timer) {
         fun createRoute(players: Int, difficulty: Int) = "game_timer/$players/$difficulty"

@@ -155,12 +155,7 @@ fun App(
                         }
 
                         // NUEVOS JUEGOS
-                        composable(
-                            route = Screen.CrocodileGame.route,
-                            arguments = listOf(navArgument("difficulty") { type = NavType.IntType })
-                        ) { 
-                            com.thanhng224.app.feature.games.CrocodileGameScreen(navController) 
-                        }
+
                         composable(
                             route = Screen.TimerGame.route,
                             arguments = listOf(

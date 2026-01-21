@@ -95,18 +95,7 @@ fun FavoritesScreen(navController: NavController) {
                     onClick = { currentFlow = DialogStep.PLAYERS }
                 )
             }
-            item {
-                GameCard(
-                    title = "Cocodrilo 🐊", 
-                    description = "¡Cuidado con la mordida!", 
-                    icon = Icons.Default.Gamepad, 
-                    color = Color(0xFF009688),
-                    onClick = { 
-                        selectedGame = "CROCODILE"
-                        currentFlow = DialogStep.DIFFICULTY 
-                    }
-                )
-            }
+
             item {
                 GameCard(
                     title = "Reto Cronómetro ⏱️", 
@@ -216,7 +205,7 @@ fun FavoritesScreen(navController: NavController) {
                 onSelect = { difficulty ->
                     when (selectedGame) {
                         "MEMORY" -> navController.navigate(Screen.MemoryGame.createRoute(selectedPlayerMode, selectedGameType, difficulty))
-                        "CROCODILE" -> navController.navigate(Screen.CrocodileGame.createRoute(difficulty))
+
                         "TIMER" -> navController.navigate(Screen.TimerGame.createRoute(selectedPlayerMode, difficulty))
                         "SOCCER" -> navController.navigate(Screen.SoccerGame.createRoute(difficulty))
                         "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(difficulty))

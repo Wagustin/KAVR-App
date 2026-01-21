@@ -80,11 +80,7 @@ fun SettingsScreen() {
         Achievement("Imparable", "Puntuación perfecta (5/5)", false)
     )
 
-    val crocodileAchievements = listOf(
-        Achievement("Dentista", "Encuentra todos los dientes seguros", false),
-        Achievement("Valiente", "Juega en modo Difícil", false),
-        Achievement("Suertudo", "Sobrevive 10 turnos seguidos", false)
-    )
+
 
     val timerAchievements = listOf(
         Achievement("Cronometrista", "Diferencia < 0.10s", false),
@@ -182,13 +178,7 @@ fun SettingsScreen() {
             }
 
             // Logros de Crocodile
-            item {
-                GameAchievementsCard(
-                    gameName = "Crocodile",
-                    color = Color(0xFF00BCD4), // Cyan
-                    achievements = crocodileAchievements
-                )
-            }
+
 
             // Logros de Timer
             item {
