@@ -187,35 +187,47 @@ fun MiniGolfGameScreen(navController: NavController) {
                 .background(Color(0xFF8BC34A)) // Grass
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDragStart = { 
+                        onDragStart = { offset ->
                              if (ballVelocity == Offset.Zero && !hasWon) {
-                                  dragStart = it 
-                                  dragCurrent = it
+                                  // Check if touch is near ball
+                                  val w = size.width
+                                  val h = size.height
+                                  val ballPixel = Offset(w * ballPos.x, h * ballPos.y)
+                                  val dist = (offset - ballPixel).getDistance()
+                                  
+                                  if (dist < w * 0.15f) { // Generous hit area
+                                      dragStart = offset // Start exactly where user touched? Or snap to ball?
+                                      // Slingshot feel: Start is the anchor.
+                                      // Actually, for "Drag from ball", let's make the ball the anchor.
+                                      dragStart = ballPixel
+                                      dragCurrent = offset
+                                  }
                              }
                         },
                         onDragEnd = {
                              if (dragStart != null && dragCurrent != null && !hasWon) {
-                                 // Calculate Power Vector
-                                 val dragVec = dragStart!! - dragCurrent!!
-                                 // Convert pixels to screen ratio roughly
-                                 // Let's assume Screen Width ~1080 -> 1.0f width. 
-                                 // Factor 0.00005f
-                                 val powerX = dragVec.x * 0.00008f
-                                 val powerY = dragVec.y * 0.00008f
+                                 // Slingshot: Vector is Start (Ball) - Current (Finger)
+                                 // So if I drag DOWN, Vector is UP (Launch forward).
+                                 val dragVec = dragStart!! - dragCurrent!! 
                                  
-                                 // Cap power
+                                 // Scale power
+                                 val powerX = dragVec.x * 0.00015f // Tweaked Scaling
+                                 val powerY = dragVec.y * 0.00015f
+                                 
                                  val rawVel = Offset(powerX, powerY)
                                  val mag = rawVel.getDistance()
-                                 ballVelocity = if (mag > MAX_POWER) {
-                                     rawVel / mag * MAX_POWER
-                                 } else {
-                                     rawVel
+                                 if (mag > 0.002f) { // Min power threshold
+                                     ballVelocity = if (mag > MAX_POWER) {
+                                         rawVel / mag * MAX_POWER
+                                     } else {
+                                         rawVel
+                                     }
                                  }
                              }
                              dragStart = null
                              dragCurrent = null
                         },
-                        onDrag = { change, dragAmount -> 
+                        onDrag = { change, _ -> 
                             if (dragStart != null) {
                                 dragCurrent = change.position
                             }
@@ -226,81 +238,100 @@ fun MiniGolfGameScreen(navController: NavController) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
+                
+                // CHECKERED BACKGROUND
+                val tileSize = w / 10f // 10 tiles wide
+                val rows = (h / tileSize).toInt() + 1
+                val cols = 10
+                
+                for(row in 0 until rows) {
+                    for(col in 0 until cols) {
+                        val color = if ((row + col) % 2 == 0) {
+                            Color(0xFF4CAF50) // Green 500
+                        } else {
+                            Color(0xFF66BB6A) // Green 400 (Ligher)
+                        }
+                        drawRect(
+                            color = color,
+                            topLeft = Offset(col * tileSize, row * tileSize),
+                            size = Size(tileSize, tileSize)
+                        )
+                    }
+                }
 
                 // Draw Hole
                 drawCircle(
-                    color = Color.Black,
+                    color = Color(0xFF1B5E20), // Dark hole
                     radius = w * holeRadius,
+                    center = Offset(w * currentLevel.holePos.x, h * currentLevel.holePos.y)
+                )
+                 drawCircle(
+                    color = Color.Black.copy(alpha=0.5f), 
+                    radius = w * holeRadius * 0.8f,
                     center = Offset(w * currentLevel.holePos.x, h * currentLevel.holePos.y)
                 )
                 
                 // Draw Walls
-                val wallColor = Color(0xFF5D4037)
-                val wallBorderColor = Color(0xFF3E2723)
-                val woodDark = Color(0xFF3E2723)
-                
                 currentLevel.walls.forEach { wall ->
                     val wx = w * wall.x
                     val wy = h * wall.y
                     val ww = w * wall.w
                     val wh = h * wall.h
                     
+                    // Shadow
+                     drawRect(
+                        color = Color.Black.copy(alpha = 0.2f),
+                        topLeft = Offset(wx + 5f, wy + 5f),
+                        size = Size(ww, wh)
+                    )
+
                     drawRect(
-                        color = wallColor, // Brown wood
+                        color = Color(0xFFE0E0E0), // Concrete/White block
                         topLeft = Offset(wx, wy),
                         size = Size(ww, wh)
                     )
-                    
-                    // Wood Grain (Simple lines)
-                    val grainSpacing = 15f
-                    val lines = (ww / grainSpacing).toInt()
-                    for(i in 0..lines) {
-                         val xOff = wx + i * grainSpacing
-                         if(xOff < wx + ww) {
-                             drawLine(woodDark, 
-                                start = Offset(xOff, wy),
-                                end = Offset(xOff, wy + wh),
-                                strokeWidth = 2f
-                             )
-                         }
-                    }
-
-                    // Border
-                    drawRect(
-                         color = wallBorderColor, 
-                         topLeft = Offset(wx, wy), 
-                         size = Size(ww, wh), 
-                         style = Stroke(width = 4f)
+                     drawRect(
+                        color = Color(0xFF9E9E9E), // Border
+                        topLeft = Offset(wx, wy),
+                        size = Size(ww, wh),
+                        style = Stroke(width = 3f)
                     )
+                }
+
+                // Drag Line (Aiming)
+                // Draw BEHIND ball
+                if (dragStart != null && dragCurrent != null) {
+                    val dragVec = dragCurrent!! - dragStart!!
+                    // Invert: Pull back to shoot forward? Or Drag to shoot?
+                    // User said "drag from ball". Usually this implies Slingshot.
+                    // Drag BACK means shoot FORWARD.
+                    
+                    val ballPixelPos = Offset(w * ballPos.x, h * ballPos.y)
+                    
+                    // Valid drag visualization
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.6f),
+                        start = ballPixelPos,
+                        end = ballPixelPos + dragVec,
+                        strokeWidth = 8f,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                    
+                    // Arrow head?
                 }
 
                 // Draw Ball
+                val ballPixelPos = Offset(w * ballPos.x, h * ballPos.y)
+                drawCircle(
+                    color = Color.Black.copy(alpha = 0.3f), // Shadow
+                    radius = w * 0.025f,
+                    center = ballPixelPos + Offset(3f, 3f)
+                )
                 drawCircle(
                     color = Color.White,
                     radius = w * 0.025f,
-                    center = Offset(w * ballPos.x, h * ballPos.y)
+                    center = ballPixelPos
                 )
-
-                // Drag Line (Aiming)
-                if (dragStart != null && dragCurrent != null) {
-                    // Draw line from ball... opposite to drag?
-                    // Angry birds style: Drag back -> Shoot forward.
-                    // The dragStart was supposedly on screen. 
-                    // Let's just draw relative to ball.
-                    
-                    val dragVec = dragStart!! - dragCurrent!!
-                    val endPoint = Offset(
-                        w * ballPos.x + dragVec.x,
-                        h * ballPos.y + dragVec.y
-                    )
-                    
-                    drawLine(
-                        color = Color.White.copy(alpha = 0.5f),
-                        start = Offset(w * ballPos.x, h * ballPos.y),
-                        end = endPoint,
-                        strokeWidth = 5f
-                    )
-                }
             }
             
             if (hasWon) {

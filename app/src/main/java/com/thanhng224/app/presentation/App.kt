@@ -165,6 +165,12 @@ fun App(
                         ) {
                              com.thanhng224.app.feature.games.TimerGameScreen(navController)
                         }
+                        composable(Screen.PongGame.route) {
+                             com.thanhng224.app.feature.games.PongGameScreen(navController)
+                        }
+                        composable(Screen.NinjaGame.route) {
+                             com.thanhng224.app.feature.games.NinjaGameScreen(navController)
+                        }
                         composable(
                             route = Screen.SoccerGame.route,
                             arguments = listOf(navArgument("difficulty") { type = NavType.IntType })

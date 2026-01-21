@@ -87,6 +87,18 @@ fun SettingsScreen() {
         Achievement("Perfecto", "Diferencia exacta 0.00s", false),
         Achievement("Reloj Humano", "Gana 3 veces seguidas", false)
     )
+
+    val pongAchievements = listOf(
+        Achievement("Amor Eterno", "Juega 5 partidas con tu pareja", false),
+        Achievement("Peloteo Largo", "Rally > 20 golpes", false),
+        Achievement("Invencible", "Gana sin recibir puntos", false)
+    )
+
+    val ninjaAchievements = listOf(
+        Achievement("Sensei", "Acierta 10 veces seguidas", false),
+        Achievement("Ojo de Halcón", "No falles ningún tiro", false),
+        Achievement("Ninja Veloz", "Gana en < 30 segundos", false)
+    )
     
     val isDarkMode by appViewModel.isDarkMode.collectAsState()
 
@@ -186,6 +198,24 @@ fun SettingsScreen() {
                     gameName = "Timer",
                     color = Color(0xFFFF9800), // Orange
                     achievements = timerAchievements
+                )
+            }
+
+            // Logros de Love Pong
+            item {
+                GameAchievementsCard(
+                    gameName = "Love Pong",
+                    color = Color(0xFFE91E63), // Pink
+                    achievements = pongAchievements
+                )
+            }
+
+            // Logros de Ninja
+            item {
+                GameAchievementsCard(
+                    gameName = "Ninja Throw",
+                    color = Color(0xFF263238), // Dark Blue Grey
+                    achievements = ninjaAchievements
                 )
             }
             

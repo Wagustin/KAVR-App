@@ -110,6 +110,29 @@ fun FavoritesScreen(navController: NavController) {
             }
             item {
                 GameCard(
+                    title = "Love Pong ❤️", 
+                    description = "Agus vs Kat", 
+                    icon = Icons.Default.Favorite, 
+                    color = Color(0xFFE91E63),
+                    onClick = { 
+                        // Direct navigation, no difficulty dialog needed for now
+                        navController.navigate(Screen.PongGame.route)
+                    }
+                )
+            }
+            item {
+                GameCard(
+                    title = "Ninja Throw ⚔️", 
+                    description = "Afina tu puntería", 
+                    icon = Icons.Default.Star, 
+                    color = Color(0xFF263238),
+                    onClick = { 
+                        navController.navigate(Screen.NinjaGame.route)
+                    }
+                )
+            }
+            item {
+                GameCard(
                     title = "Fútbol Penalties ⚽", 
                     description = "Desliza para anotar", 
                     icon = Icons.Default.Gamepad, 
