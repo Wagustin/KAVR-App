@@ -264,8 +264,7 @@ fun SoccerGameScreen(navController: NavController) {
                             drawRect(
                                 color = keeperColor, 
                                 topLeft = Offset(keeperLeft, h * 0.1f),
-                                size = Size(keeperW, keeperH),
-                                style = Fill
+                                size = Size(keeperW, keeperH)
                             )
                             // Head
                             drawCircle(Color(0xFFFFCC80), radius = 15f, center = Offset(w * kX, h * 0.09f))
