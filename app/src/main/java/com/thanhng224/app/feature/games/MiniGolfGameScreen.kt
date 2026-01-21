@@ -331,35 +331,37 @@ fun MiniGolfGameScreen(navController: NavController) {
                     drawPath(path, Color.Red)
                 }
 
-                // 3. WALLS (3D BEVEL EFFECT)
+                // 3. WALLS (ARCADE STYLE)
                 currentLevel.walls.forEach { wall ->
                     val wx = w * wall.x
                     val wy = h * wall.y
                     val ww = w * wall.w
                     val wh = h * wall.h
                     
-                    // Soft Shadow Drop
-                     drawRect(
-                        color = Color.Black.copy(alpha = 0.3f),
-                        topLeft = Offset(wx + 6f, wy + 6f),
+                    // Simple Box Shadow
+                    drawRoundRect(
+                        color = Color.Black.copy(alpha = 0.4f),
+                        topLeft = Offset(wx + 8f, wy + 8f),
                         size = Size(ww, wh),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f)
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f)
                     )
 
-                    // Main Block
-                    drawRect(
-                        color = Color(0xFFE0E0E0), // Concrete
+                    // Main Wall (Vibrant Brick/Wood Color)
+                    drawRoundRect(
+                        color = Color(0xFFFF7043), // Deep Orange
                         topLeft = Offset(wx, wy),
-                        size = Size(ww, wh)
+                        size = Size(ww, wh),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f)
                     )
                     
-                    // Bevel Highlights (Top/Left Light)
-                    drawLine(Color.White, Offset(wx, wy), Offset(wx+ww, wy), strokeWidth=4f)
-                    drawLine(Color.White, Offset(wx, wy), Offset(wx, wy+wh), strokeWidth=4f)
-                    
-                    // Bevel Shadows (Bottom/Right Dark)
-                    drawLine(Color.Gray, Offset(wx+ww, wy), Offset(wx+ww, wy+wh), strokeWidth=4f)
-                    drawLine(Color.Gray, Offset(wx, wy+wh), Offset(wx+ww, wy+wh), strokeWidth=4f)
+                    // Border
+                    drawRoundRect(
+                        color = Color(0xFFBF360C), // Darker Orange Outline
+                        topLeft = Offset(wx, wy),
+                        size = Size(ww, wh),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f),
+                        style = Stroke(width = 6f)
+                    )
                 }
 
                 // 4. DRAG LINE (AIMING)
@@ -367,58 +369,58 @@ fun MiniGolfGameScreen(navController: NavController) {
                     val dragVec = dragCurrent!! - dragStart!!
                     val ballPixelPos = Offset(w * ballPos.x, h * ballPos.y)
                     
-                    // Draw dashed line? Or solid gradient? Solid is cleaner.
+                    // Arcade Arrow
                     drawLine(
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = Color.Yellow,
                         start = ballPixelPos,
-                        end = ballPixelPos - dragVec, // Invert to show direction
-                        strokeWidth = 6f,
+                        end = ballPixelPos - dragVec,
+                        strokeWidth = 10f,
                         cap = androidx.compose.ui.graphics.StrokeCap.Round
                     )
-                    
-                    // Arrow Head logic omitted for simplicity/style
                 }
 
-                // 5. BALL (3D SPHERE)
+                // 5. BALL (ARCADE STYLE)
                 val ballPixelPos = Offset(w * ballPos.x, h * ballPos.y)
                 val ballRadPx = w * ballRadiusRel
                 
-                // Drop Shadow
+                // Simple Shadow
                  drawCircle(
                     color = Color.Black.copy(alpha = 0.3f), 
                     radius = ballRadPx,
-                    center = ballPixelPos + Offset(4f, 4f)
+                    center = ballPixelPos + Offset(6f, 6f)
                 )
                 
-                // 3D Gradient Sphere
+                // Solid White Ball + Thick Outline
                 drawCircle(
-                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                        colors = listOf(Color.White, Color.LightGray, Color.DarkGray),
-                        center = ballPixelPos - Offset(ballRadPx*0.3f, ballRadPx*0.3f), // Highlight offset
-                        radius = ballRadPx * 1.5f
-                    ),
+                    color = Color.White,
                     radius = ballRadPx,
                     center = ballPixelPos
+                )
+                 drawCircle(
+                    color = Color.Black,
+                    radius = ballRadPx,
+                    center = ballPixelPos,
+                    style = Stroke(width = 4f)
                 )
             }
             
             if (hasWon) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("¡HOYO EN UNO! ⛳", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                        Text("¡HOYO! 🎯", color = Color.Yellow, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black)
                         Spacer(modifier = Modifier.height(24.dp))
                         if (levelIndex < levels.size - 1) {
                             Button(
                                 onClick = { levelIndex++ },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800))
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)) // Bright Green
                             ) {
-                                Text("Siguiente Nivel ➡\uFE0F")
+                                Text("NEXT LEVEL ▶", fontWeight = FontWeight.Bold, color = Color.Black)
                             }
                         } else {
-                            Text("¡Juego Completado! \uD83C\uDFC6", color = Color.Yellow, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                            Text("YOU WIN! 🏆", color = Color.Cyan, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(onClick = { levelIndex = 0 }) {
-                                Text("Volver a Empezar")
+                                Text("REPLAY ↺")
                             }
                         }
                     }
