@@ -63,6 +63,7 @@ fun FavoritesScreen(navController: NavController) {
     var selectedPlayerMode by remember { mutableIntStateOf(1) }
     var selectedGameType by remember { mutableIntStateOf(Screen.MemoryGame.SUBMODE_ZEN) }
     var selectedGame by remember { mutableStateOf<String?>(null) } // Tracks which game is being launched
+    var selectedPongMode by remember { mutableIntStateOf(0) }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
@@ -178,8 +179,16 @@ fun FavoritesScreen(navController: NavController) {
             PongModeSelectionDialog(
                 onDismiss = { currentFlow = DialogStep.HIDDEN },
                 onSelect = { mode ->
-                    navController.navigate(Screen.PongGame.createRoute(mode))
-                    currentFlow = DialogStep.HIDDEN
+                    selectedPongMode = mode
+                    if (mode == 1) {
+                         // AI Mode -> Ask Difficulty
+                         selectedGame = "PONG"
+                         currentFlow = DialogStep.DIFFICULTY
+                    } else {
+                         // 2 Player -> Direct (Default Diff 1)
+                         navController.navigate(Screen.PongGame.createRoute(mode, 1)) 
+                         currentFlow = DialogStep.HIDDEN
+                    }
                 }
             )
         }
@@ -255,6 +264,7 @@ fun FavoritesScreen(navController: NavController) {
                         "SOCCER" -> navController.navigate(Screen.SoccerGame.createRoute(difficulty))
                         "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(difficulty))
                         "SNAKE" -> navController.navigate(Screen.SnakeGame.createRoute(difficulty))
+                        "PONG" -> navController.navigate(Screen.PongGame.createRoute(selectedPongMode, difficulty))
                     }
                     currentFlow = DialogStep.HIDDEN
                     selectedGame = null

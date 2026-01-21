@@ -281,9 +281,16 @@ fun MemoryCardItem(card: MemoryCard, onClick: () -> Unit) {
                 shadowElevation = 4.dp,
                 border = BorderStroke(1.dp, Color.LightGray)
             ) {
-                 // FOTO
-                 androidx.compose.foundation.Image(
-                     painter = androidx.compose.ui.res.painterResource(id = card.imageRes),
+                 // FOTO OPTIMIZADA
+                 coil.compose.AsyncImage(
+                     model = androidx.compose.ui.platform.LocalContext.current.let { context ->
+                         coil.request.ImageRequest.Builder(context)
+                             .data(card.imageRes)
+                             .size(256) // Downsizing considerablemente para grid pequeño
+                             .memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                             .crossfade(true)
+                             .build()
+                     },
                      contentDescription = null,
                      contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                      modifier = Modifier.fillMaxSize()

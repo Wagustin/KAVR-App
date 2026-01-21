@@ -41,8 +41,8 @@ sealed class Screen(val route: String, val titleRes: Int, val icon: ImageVector)
         fun createRoute(players: Int, difficulty: Int) = "game_timer/$players/$difficulty"
     }
 
-    data object PongGame : Screen("game_pong/{mode}", R.string.game_snake, Icons.Default.Favorite) {
-        fun createRoute(mode: Int) = "game_pong/$mode"
+    data object PongGame : Screen("game_pong/{mode}/{difficulty}", R.string.game_snake, Icons.Default.Favorite) {
+        fun createRoute(mode: Int, difficulty: Int) = "game_pong/$mode/$difficulty"
     }
     data object NinjaGame : Screen("game_ninja/{mode}", R.string.game_snake, Icons.Default.Star) {
         fun createRoute(mode: Int) = "game_ninja/$mode"

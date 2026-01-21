@@ -167,7 +167,10 @@ fun App(
                         }
                         composable(
                              route = Screen.PongGame.route,
-                             arguments = listOf(androidx.navigation.navArgument("mode") { type = androidx.navigation.NavType.IntType })
+                             arguments = listOf(
+                                 androidx.navigation.navArgument("mode") { type = androidx.navigation.NavType.IntType },
+                                 androidx.navigation.navArgument("difficulty") { type = androidx.navigation.NavType.IntType }
+                             )
                         ) {
                              com.thanhng224.app.feature.games.PongGameScreen(navController)
                         }

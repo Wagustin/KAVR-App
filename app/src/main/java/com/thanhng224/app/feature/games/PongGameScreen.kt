@@ -58,6 +58,7 @@ const val INITIAL_SPEED = 10f
 fun PongGameScreen(navController: NavController) {
     val context = LocalContext.current
     val mode = navController.currentBackStackEntry?.arguments?.getInt("mode") ?: 0 // 0=2P, 1=1P (AI)
+    val difficulty = navController.currentBackStackEntry?.arguments?.getInt("difficulty") ?: 1 // 0=Easy, 1=Med, 2=Hard
 
     // --- STATE ---
     var scores by remember { mutableStateOf(0 to 0) } // Top (Kat) vs Bottom (Agus)
@@ -77,7 +78,10 @@ fun PongGameScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if(mode==1) "Love Pong (Solo)" else "Love Pong (Versus)", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { 
+                    val diffText = if(mode==1) when(difficulty) { 0->" (Fácil)" 1->" (Medio)" else->" (Difícil)" } else " (Versus)"
+                    Text("Love Pong$diffText", fontWeight = FontWeight.Bold, color = Color.White) 
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -98,6 +102,7 @@ fun PongGameScreen(navController: NavController) {
         ) {
             PongGameLoop(
                 mode = mode,
+                difficulty = difficulty,
                 agusBitmap = agusBitmap,
                 katBitmap = katBitmap,
                 currentScores = scores,
@@ -148,6 +153,7 @@ fun loadBitmapFromFolder(context: Context, folderName: String): Bitmap? {
 @Composable
 fun PongGameLoop(
     mode: Int,
+    difficulty: Int,
     agusBitmap: Bitmap?,
     katBitmap: Bitmap?,
     currentScores: Pair<Int, Int>,
@@ -165,6 +171,10 @@ fun PongGameLoop(
     // Paddle X positions (0f to 1f relative to width)
     var paddleTopX by remember { mutableFloatStateOf(0.5f) }
     var paddleBottomX by remember { mutableFloatStateOf(0.5f) }
+    
+    // AI State
+    var aiTargetX by remember { mutableFloatStateOf(0.5f) }
+    var lastAiCalcTime by remember { mutableLongStateOf(0L) }
 
     // Game Loop
     LaunchedEffect(canvasSize) {
@@ -175,15 +185,65 @@ fun PongGameLoop(
         ballVel = Offset(INITIAL_SPEED * (if(Random.nextBoolean()) 1 else -1), INITIAL_SPEED)
 
         while (true) {
-            withFrameMillis { _ ->
-                val w = canvasSize.width.toFloat()
+            withFrameNanos { time ->
+                 val w = canvasSize.width.toFloat()
                 val h = canvasSize.height.toFloat()
                 
-                // AI LOGIC (KAT - Top Player)
+                // --- ADVANCED AI LOGIC (KAT) ---
                 if (mode == 1) {
-                    val targetX = ballPos.x / w
-                    // Simple Lerp for AI movement
-                    paddleTopX += (targetX - paddleTopX) * 0.05f 
+                    val aiReactionDelay = when(difficulty) {
+                        0 -> 500_000_000L // Easy: 500ms delay
+                        1 -> 300_000_000L // Medium: 300ms delay
+                        else -> 100_000_000L // Hard: 100ms delay
+                    }
+                    
+                    val aiErrorMargin = when(difficulty) {
+                        0 -> 0.2f // Easy: +/- 20% width error
+                        1 -> 0.1f // Medium: +/- 10% width error
+                        else -> 0.02f // Hard: Very precise
+                    }
+                    
+                    val aiSpeed = when(difficulty) {
+                        0 -> 0.03f // Easy: Slow
+                        1 -> 0.06f // Med: Normal
+                        else -> 0.12f // Hard: Fast
+                    }
+                    
+                    // Only recalc prediction if enough time passed OR ball just hit bottom paddle (moving up)
+                    // If ball moving DOWN (towards user), center paddle or relax
+                    if (ballVel.y < 0) {
+                        // Ball Moving UP -> Predict Trajectory
+                        if (time - lastAiCalcTime > aiReactionDelay) {
+                             // Predict impact X
+                             val distY = ballPos.y - 50f // Dist to top paddle
+                             val timeToHit = kotlin.math.abs(distY / ballVel.y)
+                             var futureX = ballPos.x + (ballVel.x * timeToHit)
+                             
+                             // Handle Bounces (Simple Reflection logic approximation)
+                             // If futureX outside [0, w], reflect it.
+                             // Rough bouncing logic for 1-2 bounces
+                             while(futureX < 0 || futureX > w) {
+                                 if(futureX < 0) futureX = -futureX
+                                 if(futureX > w) futureX = 2*w - futureX
+                             }
+                             
+                             // Add Error
+                             val error = (Random.nextFloat() - 0.5f) * 2 * aiErrorMargin
+                             aiTargetX = (futureX / w) + error
+                             aiTargetX = aiTargetX.coerceIn(0f, 1f)
+                             
+                             lastAiCalcTime = time
+                        }
+                    } else {
+                        // Ball Moving AWAY -> Return to Center (0.5) or track loosely
+                         if (time - lastAiCalcTime > 1_000_000_000L) { // Once per sec
+                             aiTargetX = 0.5f
+                             lastAiCalcTime = time
+                         }
+                    }
+                    
+                    // Move AI Paddle smoothly
+                    paddleTopX += (aiTargetX - paddleTopX) * aiSpeed
                     paddleTopX = paddleTopX.coerceIn(0f, 1f)
                 }
 
