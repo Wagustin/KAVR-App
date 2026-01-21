@@ -237,17 +237,39 @@ fun MiniGolfGameScreen(navController: NavController) {
                 // Draw Walls
                 val wallColor = Color(0xFF5D4037)
                 val wallBorderColor = Color(0xFF3E2723)
+                val woodDark = Color(0xFF3E2723)
+                
                 currentLevel.walls.forEach { wall ->
+                    val wx = w * wall.x
+                    val wy = h * wall.y
+                    val ww = w * wall.w
+                    val wh = h * wall.h
+                    
                     drawRect(
                         color = wallColor, // Brown wood
-                        topLeft = Offset(w * wall.x, h * wall.y),
-                        size = Size(w * wall.w, h * wall.h)
+                        topLeft = Offset(wx, wy),
+                        size = Size(ww, wh)
                     )
+                    
+                    // Wood Grain (Simple lines)
+                    val grainSpacing = 15f
+                    val lines = (ww / grainSpacing).toInt()
+                    for(i in 0..lines) {
+                         val xOff = wx + i * grainSpacing
+                         if(xOff < wx + ww) {
+                             drawLine(woodDark, 
+                                start = Offset(xOff, wy),
+                                end = Offset(xOff, wy + wh),
+                                strokeWidth = 2f
+                             )
+                         }
+                    }
+
                     // Border
                     drawRect(
                          color = wallBorderColor, 
-                         topLeft = Offset(w * wall.x, h * wall.y), 
-                         size = Size(w * wall.w, h * wall.h), 
+                         topLeft = Offset(wx, wy), 
+                         size = Size(ww, wh), 
                          style = Stroke(width = 4f)
                     )
                 }

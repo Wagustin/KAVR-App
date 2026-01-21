@@ -22,11 +22,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -107,7 +110,8 @@ private fun SnakeBoard(
             .fillMaxWidth()
             .aspectRatio(1f)
             .padding(16.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clip(RoundedCornerShape(16.dp)) // Rounded board
+            .background(Color(0xFF81C784)) // Base grass color
             .pointerInput(gameState) {
                 if (gameState == GameState.PLAYING) {
                     detectDragGestures { change, dragAmount ->
@@ -119,7 +123,6 @@ private fun SnakeBoard(
                         }
                     }
                 } else {
-                    // Solo permite iniciar si el juego está en IDLE
                     detectTapGestures {
                         if (gameState == GameState.IDLE) onStartGame()
                     }
@@ -128,39 +131,88 @@ private fun SnakeBoard(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cellSize = size.width / GRID_SIZE
+            val cellPx = size.width / GRID_SIZE
 
-            // Dibuja el cuerpo
-            snakeBody.drop(1).forEach {
-                drawRect(
-                    color = Color(0xFF4CAF50), // Verde
-                    topLeft = Offset(it.first * cellSize, it.second * cellSize),
-                    size = androidx.compose.ui.geometry.Size(cellSize, cellSize)
-                )
+            // 1. CHECKERBOARD BACKGROUND
+            val darkGrass = Color(0xFF66BB6A)
+            val lightGrass = Color(0xFF81C784)
+            
+            for (i in 0 until GRID_SIZE) {
+                for (j in 0 until GRID_SIZE) {
+                    val color = if ((i + j) % 2 == 0) lightGrass else darkGrass
+                    drawRect(
+                        color = color,
+                        topLeft = Offset(i * cellPx, j * cellPx),
+                        size = androidx.compose.ui.geometry.Size(cellPx, cellPx)
+                    )
+                }
             }
 
-            // Dibuja la cabeza
-            snakeBody.firstOrNull()?.let { head ->
-                drawRect(
-                    color = Color(0xFF2E7D32), // Verde oscuro
-                    topLeft = Offset(head.first * cellSize, head.second * cellSize),
-                    size = androidx.compose.ui.geometry.Size(cellSize, cellSize)
-                )
+            // 2. SNAKE BODY
+            // Draw from tail to head
+            snakeBody.asReversed().forEachIndexed { index, point ->
+                val isHead = index == snakeBody.lastIndex
+                val color = if (isHead) Color(0xFF1B5E20) else Color(0xFF2E7D32)
+                
+                val topLeft = Offset(point.first * cellPx, point.second * cellPx)
+                val center = Offset(topLeft.x + cellPx/2, topLeft.y + cellPx/2)
+                
+                if (isHead) {
+                    // Head shape (Rounded)
+                    drawRoundRect(
+                        color = color,
+                        topLeft = topLeft,
+                        size = androidx.compose.ui.geometry.Size(cellPx, cellPx),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(cellPx/2, cellPx/2)
+                    )
+                    
+                    // Eyes (White + Black pupil)
+                    // Determine direction based on previous body part or default?
+                    // Simplified: Just put two eyes on top
+                    drawCircle(Color.White, radius = cellPx * 0.15f, center = Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
+                    drawCircle(Color.White, radius = cellPx * 0.15f, center = Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
+                    drawCircle(Color.Black, radius = cellPx * 0.07f, center = Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
+                    drawCircle(Color.Black, radius = cellPx * 0.07f, center = Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
+                    
+                } else {
+                    // Body segment (Slightly smaller for style)
+                    drawRoundRect(
+                        color = color,
+                        topLeft = Offset(topLeft.x + 2f, topLeft.y + 2f),
+                        size = androidx.compose.ui.geometry.Size(cellPx - 4f, cellPx - 4f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f)
+                    )
+                }
             }
 
-            // Dibuja la comida
+            // 3. FOOD (Apple)
+            val foodCenter = Offset((food.first * cellPx) + (cellPx / 2), (food.second * cellPx) + (cellPx / 2))
             drawCircle(
-                color = Color.Red,
-                radius = cellSize / 2,
-                center = Offset((food.first * cellSize) + (cellSize / 2), (food.second * cellSize) + (cellSize / 2))
+                color = Color(0xFFE53935), // Red Apple
+                radius = cellPx * 0.4f,
+                center = foodCenter
+            )
+            // Leaf
+            drawCircle(
+                color = Color(0xFF4CAF50),
+                radius = cellPx * 0.15f,
+                center = Offset(foodCenter.x + cellPx*0.2f, foodCenter.y - cellPx*0.3f)
             )
         }
 
-        // Mensaje inicial para empezar
+        // INITIAL MESSAGE
         if (gameState == GameState.IDLE) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "Toca para Empezar",
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = "TAP TO START",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
                     textAlign = TextAlign.Center
                 )
             }

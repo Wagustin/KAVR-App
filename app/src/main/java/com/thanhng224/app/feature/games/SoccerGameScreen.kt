@@ -195,51 +195,90 @@ fun SoccerGameScreen(navController: NavController) {
                             val w = size.width
                             val h = size.height
                             
+                            // 1. GRASS FIELD (Stripes)
+                            val stripeHeight = h / 20
+                            val darkGrass = Color(0xFF2E7D32)
+                            val lightGrass = Color(0xFF388E3C)
+                            
+                            drawRect(color = darkGrass, size = size) // Base
+                            
+                            for (i in 0 until 20 step 2) {
+                                drawRect(
+                                    color = lightGrass,
+                                    topLeft = Offset(0f, i * stripeHeight),
+                                    size = Size(w, stripeHeight)
+                                )
+                            }
+                            
+                            // Penalty Box
+                            drawRect(
+                                color = Color.White.copy(alpha=0.8f),
+                                style = Stroke(width = 5f),
+                                topLeft = Offset(w * 0.2f, h * 0.05f),
+                                size = Size(w * 0.6f, h * 0.15f)
+                            )
+                            
                             // State Reads
                             val bPos = ballPos.value
                             val kX = keeperX.floatValue
                             
-                            // Draw Field
-                            drawRect(color = Color.White, style = Stroke(width = 5f), topLeft = Offset(50f, 50f), size = Size(w - 100f, h - 100f)) 
+                            // Draw Field Outline
+                            drawRect(color = Color.White.copy(alpha=0.8f), style = Stroke(width = 5f), topLeft = Offset(10f, 10f), size = Size(w - 20f, h - 20f)) 
                             
                             // Draw Goal
                             drawRect(
                                 color = Color.White, 
-                                topLeft = Offset(w * 0.1f, h * 0.05f), 
-                                size = Size(w * 0.8f, h * 0.1f),
+                                topLeft = Offset(w * 0.1f, h * 0.02f), 
+                                size = Size(w * 0.8f, h * 0.08f),
                                 style = Stroke(width = 8f)
                             )
                             
-                            // Draw Net
-                            val netColor = Color(0x80FFFFFF)
-                            for (i in 1..5) {
+                            // Draw Net (Diamond Pattern)
+                            val netColor = Color(0x60FFFFFF)
+                            val netRect = androidx.compose.ui.geometry.Rect(w * 0.1f, h * 0.02f, w * 0.9f, h * 0.1f)
+                           
+                            // Simple Crosshatch
+                            val step = 20f
+                            // Diagonals 1
+                            // (Simplified for performance: just vertical lines behind)
+                             for (i in 1..8) {
                                  drawLine(netColor, 
-                                    start = Offset(w * 0.1f + (w * 0.8f * i / 6), h * 0.05f),
-                                    end = Offset(w * 0.1f + (w * 0.8f * i / 6), h * 0.15f)
+                                    start = Offset(w * 0.1f + (w * 0.8f * i / 9), h * 0.02f),
+                                    end = Offset(w * 0.1f + (w * 0.8f * i / 9), h * 0.1f),
+                                    strokeWidth = 2f
                                  )
+                            }
+                             // Horizontal lines
+                            for (i in 1..3) {
+                                 val y = h*0.02f + (h*0.08f * i/4)
+                                 drawLine(netColor, start = Offset(w*0.1f, y), end = Offset(w*0.9f, y))
                             }
                             
                             // Draw Keeper
-                            val keeperColor = Color(0xFFD32F2F)
+                            val keeperColor = Color(0xFFD32F2F) // Red Jersey
+                            // Body
+                            val keeperW = w * 0.16f
+                            val keeperH = h * 0.06f
+                            val keeperLeft = w * kX - keeperW/2
+                            
                             drawRect(
                                 color = keeperColor, 
-                                topLeft = Offset(w * (kX - 0.08f), h * 0.12f),
-                                size = Size(w * 0.16f, h * 0.06f)
+                                topLeft = Offset(keeperLeft, h * 0.1f),
+                                size = Size(keeperW, keeperH),
+                                style = Fill
                             )
+                            // Head
+                            drawCircle(Color(0xFFFFCC80), radius = 15f, center = Offset(w * kX, h * 0.09f))
                             
-                            // Draw Ball
-                            drawCircle(
-                                color = Color.White,
-                                radius = 25f,
-                                center = Offset(w * bPos.x, h * bPos.y)
-                            )
-                            drawCircle(
-                                color = Color.Black,
-                                radius = 25f,
-                                center = Offset(w * bPos.x, h * bPos.y),
-                                style = Stroke(width = 2f)
-                            )
+                            // Draw Ball (With classic Texture)
+                            val ballCenter = Offset(w * bPos.x, h * bPos.y)
+                            val ballRadius = 25f
+                            drawCircle(Color.White, radius = ballRadius, center = ballCenter)
+                            // Hexagon patterns roughly
+                            drawCircle(Color.Black, radius = ballRadius, center = ballCenter, style = Stroke(width = 2f))
+                            drawCircle(Color.Black, radius = ballRadius/2, center = ballCenter, style = Stroke(width = 1f))
                         }
+                 
                 )
             }
             

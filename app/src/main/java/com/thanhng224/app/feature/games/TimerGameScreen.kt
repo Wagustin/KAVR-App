@@ -54,11 +54,14 @@ fun TimerGameScreen(navController: NavController) {
         1 -> 3.0f
         else -> 2.0f
     }
-    val targetTime = 5.00f
-
     // --- GAME STATE ---
     var gameState by remember { mutableStateOf(TimerGameState.INTRO) }
     var countdownValue by remember { mutableIntStateOf(3) }
+    
+    // Random Target Logic
+    // Start with default 5.00, but will be randomized on start
+    var targetTimeValue by remember { mutableFloatStateOf(5.00f) }
+    val targetTimeString = String.format("%.2f", targetTimeValue)
 
     // Player States
     // P1
@@ -78,6 +81,11 @@ fun TimerGameScreen(navController: NavController) {
     // Helper to start game
     fun startGame() {
         gameState = TimerGameState.COUNTDOWN
+        
+        // Randomize Target (3.00s to 9.99s)
+        val rnd = 300 + (Math.random() * 700).toInt() // 300 to 999
+        targetTimeValue = rnd / 100f
+        
         // Reset values
         p1Finished = false
         p1Display = "0.00"
@@ -160,7 +168,7 @@ fun TimerGameScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Exact 5.00s", fontWeight = FontWeight.Bold) },
+                title = { Text("Exact Match", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -176,6 +184,7 @@ fun TimerGameScreen(navController: NavController) {
                         p2Finished = false
                         p1Display = "0.00"
                         p2Display = "0.00"
+                        targetTimeValue = 5.00f // Reset to default on full reset
                     }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Reset")
                     }
@@ -205,9 +214,9 @@ fun TimerGameScreen(navController: NavController) {
                             .aspectRatio(0.8f),
                         playerColor = P1Color,
                         displayTime = p1Display,
-                        targetTime = "5.00",
+                        targetTime = targetTimeString,
                         textColor = Color.White,
-                        state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p1StopTime, targetTime) 
+                        state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p1StopTime, targetTimeValue) 
                                 else if (gameState == TimerGameState.PLAYING) PlayerState.Running 
                                 else PlayerState.Idle,
                         onAction = {
@@ -240,9 +249,9 @@ fun TimerGameScreen(navController: NavController) {
                             modifier = Modifier.fillMaxWidth().aspectRatio(1.2f),
                             playerColor = P2Color,
                             displayTime = p2Display,
-                            targetTime = "5.00",
+                            targetTime = targetTimeString,
                             textColor = Color.White,
-                            state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p2StopTime, targetTime)
+                            state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p2StopTime, targetTimeValue)
                                     else if (gameState == TimerGameState.PLAYING && p2Finished) PlayerState.Waiting // Finished but waiting for P1
                                     else if (gameState == TimerGameState.PLAYING) PlayerState.Running
                                     else PlayerState.Idle,
@@ -277,12 +286,13 @@ fun TimerGameScreen(navController: NavController) {
                             modifier = Modifier.fillMaxWidth().aspectRatio(1.2f),
                             playerColor = P1Color,
                             displayTime = p1Display,
-                            targetTime = "5.00",
+                            targetTime = targetTimeString,
                             textColor = Color.White,
-                            state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p1StopTime, targetTime)
+                            state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p1StopTime, targetTimeValue)
                                     else if (gameState == TimerGameState.PLAYING && p1Finished) PlayerState.Waiting
                                     else if (gameState == TimerGameState.PLAYING) PlayerState.Running
                                     else PlayerState.Idle,
+
                             onAction = {
                                 if (gameState == TimerGameState.INTRO || gameState == TimerGameState.FINISHED) {
                                     startGame()
