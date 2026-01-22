@@ -20,6 +20,12 @@ enum class FoodType {
     JUNK, GOLDEN, HEALTHY
 }
 
+// --- AJUSTE DE VELOCIDADES ---
+private const val CASUAL_DELAY = 200L         // Lento y relajante
+private const val TRYHARD_START_DELAY = 150L  // Velocidad media inicial
+private const val TRYHARD_MIN_DELAY = 40L     // Velocidad máxima injugable
+private const val SPEED_STEP = 8L             // Cuánto baja el delay por cada manzana
+
 @HiltViewModel
 class SnakeViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
