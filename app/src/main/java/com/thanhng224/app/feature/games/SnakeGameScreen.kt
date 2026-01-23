@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.foundation.border
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import kotlin.math.abs
@@ -167,7 +168,7 @@ private fun SnakeBoard(
         ).value else Color.Transparent
         
         if (isHealthyMode) {
-            Box(Modifier.fillMaxSize().background(Color.Yellow.copy(alpha=0.1f)).androidx.compose.foundation.border(4.dp, borderColor))
+            Box(Modifier.fillMaxSize().background(Color.Yellow.copy(alpha=0.1f)).border(4.dp, borderColor))
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {

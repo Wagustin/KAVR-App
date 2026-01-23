@@ -64,6 +64,7 @@ fun FavoritesScreen(navController: NavController) {
     var selectedGameType by remember { mutableIntStateOf(Screen.MemoryGame.SUBMODE_ZEN) }
     var selectedGame by remember { mutableStateOf<String?>(null) } // Tracks which game is being launched
     var selectedPongMode by remember { mutableIntStateOf(0) }
+    var selectedNinjaMode by remember { mutableIntStateOf(0) }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
@@ -169,8 +170,9 @@ fun FavoritesScreen(navController: NavController) {
             NinjaModeSelectionDialog(
                 onDismiss = { currentFlow = DialogStep.HIDDEN },
                 onSelect = { mode ->
-                    navController.navigate(Screen.NinjaGame.createRoute(mode))
-                    currentFlow = DialogStep.HIDDEN
+                    selectedNinjaMode = mode
+                    selectedGame = "NINJA"
+                    currentFlow = DialogStep.DIFFICULTY
                 }
             )
         }
@@ -266,7 +268,7 @@ fun FavoritesScreen(navController: NavController) {
                         "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(difficulty))
                         "SNAKE" -> navController.navigate(Screen.SnakeGame.createRoute(difficulty))
                         "PONG" -> navController.navigate(Screen.PongGame.createRoute(selectedPongMode, difficulty))
-                        "NINJA" -> navController.navigate(Screen.NinjaGame.createRoute(selectedPongMode, difficulty)) // Ninja uses selectedPongMode temp var usage or separate? 
+                        "NINJA" -> navController.navigate(Screen.NinjaGame.createRoute(selectedNinjaMode, difficulty)) 
                         // Ah wait, Ninja flow uses `selectedPongMode` var? No, I need to check how Ninja sets its mode. 
                         // Looking at lines 150-160 (not shown), Ninja probably sets `selectedPongMode` (reused) or `selectedPlayerMode`.
                         // Re-checking Ninja Dialog call...
