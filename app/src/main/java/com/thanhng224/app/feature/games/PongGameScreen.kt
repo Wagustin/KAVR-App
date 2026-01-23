@@ -195,23 +195,24 @@ fun PongGameLoop(
                 
                 // --- ADVANCED AI LOGIC (KAT) ---
                 if (mode == 1) {
-                    val aiReactionDelay = when(difficulty) {
-                        0 -> 500_000_000L // Easy: 500ms delay
-                        1 -> 300_000_000L // Medium: 300ms delay
-                        else -> 100_000_000L // Hard: 100ms delay
-                    }
-                    
-                    val aiErrorMargin = when(difficulty) {
-                        0 -> 0.2f // Easy: +/- 20% width error
-                        1 -> 0.1f // Medium: +/- 10% width error
-                        else -> 0.02f // Hard: Very precise
-                    }
-                    
-                    val aiSpeed = when(difficulty) {
-                        0 -> 0.03f // Easy: Slow
-                        1 -> 0.06f // Med: Normal
-                        else -> 0.12f // Hard: Fast
-                    }
+          // Difficulty params
+        val aiReactionDelay = when(difficulty) {
+            0 -> 600_000_000L // Easy: 600ms delay (Very slow)
+            1 -> 300_000_000L // Medium: 300ms delay
+            else -> 50_000_000L // Hard: 50ms delay (Almost instant)
+        }
+
+        val aiErrorMargin = when(difficulty) {
+            0 -> 0.25f // Easy: +/- 25% width error (Clumsy)
+            1 -> 0.1f // Medium: +/- 10% width error
+            else -> 0.0f // Hard: Perfect tracking
+        }
+
+        val aiSpeed = when(difficulty) {
+            0 -> 0.025f // Easy: Very Slow
+            1 -> 0.06f // Med: Normal
+            else -> 0.15f // Hard: Very Fast
+        }            
                     
                     // Only recalc prediction if enough time passed OR ball just hit bottom paddle (moving up)
                     // If ball moving DOWN (towards user), center paddle or relax

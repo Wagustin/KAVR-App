@@ -32,9 +32,9 @@ import kotlin.random.Random
 fun SoccerGameScreen(navController: NavController) {
     val difficulty = navController.currentBackStackEntry?.arguments?.getInt("difficulty") ?: 0
     val keeperSpeed = when (difficulty) {
-        0 -> 0.01f
-        1 -> 0.015f
-        else -> 0.025f
+        0 -> 0.008f // Easy: Slower
+        1 -> 0.015f // Medium: Standard
+        else -> 0.020f // Hard: Fast (Tracking)
     }
 
     var score by remember { mutableIntStateOf(0) }
@@ -59,11 +59,23 @@ fun SoccerGameScreen(navController: NavController) {
                 lastTime = frameTime
                 
                 // Keeper AI
-                keeperX.floatValue += keeperSpeed * keeperDirection.floatValue * delta
-                if (keeperX.floatValue > 0.8f || keeperX.floatValue < 0.2f) keeperDirection.floatValue *= -1
-                
-                // Randomly change direction
-                if (Random.nextFloat() < (0.05f * delta)) keeperDirection.floatValue *= -1
+                if (difficulty == 2) {
+                    // HARD: Ball Tracking
+                    val targetX = ballPos.value.x
+                    // Move towards ball
+                    if (keeperX.floatValue < targetX - 0.02f) {
+                        keeperX.floatValue += keeperSpeed * delta
+                    } else if (keeperX.floatValue > targetX + 0.02f) {
+                        keeperX.floatValue -= keeperSpeed * delta
+                    }
+                } else {
+                    // EASY / MEDIUM: Random Patrol
+                    keeperX.floatValue += keeperSpeed * keeperDirection.floatValue * delta
+                    if (keeperX.floatValue > 0.8f || keeperX.floatValue < 0.2f) keeperDirection.floatValue *= -1
+                    
+                    // Randomly change direction
+                    if (Random.nextFloat() < (0.05f * delta)) keeperDirection.floatValue *= -1
+                }
                 
                 // Ball Physics
                 if (isBallMoving.value) {

@@ -121,19 +121,31 @@ private fun SnakeBoard(
     val context = androidx.compose.ui.platform.LocalContext.current
     
     // --- LOAD SNAKE HEAD IMAGES ---
-    // We try to load 4 direction images: head_up, head_down, head_left, head_right
-    // If not found, fall back to default shape
+    // Standard Heads
     var headUp by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var headDown by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var headLeft by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var headRight by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     
+    // Open Mouth Heads
+    var headUpOpen by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var headDownOpen by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var headLeftOpen by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var headRightOpen by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    
     androidx.compose.runtime.LaunchedEffect(Unit) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            // Load Standard
             headUp = loadBitmapFromDrawable(context, "snake_head_up")
             headDown = loadBitmapFromDrawable(context, "snake_head_down")
             headLeft = loadBitmapFromDrawable(context, "snake_head_left")
             headRight = loadBitmapFromDrawable(context, "snake_head_right")
+            
+            // Load Open
+            headUpOpen = loadBitmapFromDrawable(context, "snake_head_up_open")
+            headDownOpen = loadBitmapFromDrawable(context, "snake_head_down_open")
+            headLeftOpen = loadBitmapFromDrawable(context, "snake_head_left_open")
+            headRightOpen = loadBitmapFromDrawable(context, "snake_head_right_open")
         }
     }
 
@@ -210,12 +222,25 @@ private fun SnakeBoard(
                 val center = Offset(topLeft.x + cellPx/2, topLeft.y + cellPx/2)
                 
                 if (isHead) {
+                    // Calculate distance to food
+                    val dist = abs(point.first - food.first) + abs(point.second - food.second)
+                    val isMouthOpen = dist <= 2
+                    
                     // Try to use Bitmap
-                    val bitmap = when(currentDirection) {
-                        Direction.UP -> headUp
-                        Direction.DOWN -> headDown
-                        Direction.LEFT -> headLeft
-                        Direction.RIGHT -> headRight
+                    val bitmap = if (isMouthOpen) {
+                        when(currentDirection) {
+                            Direction.UP -> headUpOpen ?: headUp
+                            Direction.DOWN -> headDownOpen ?: headDown
+                            Direction.LEFT -> headLeftOpen ?: headLeft
+                            Direction.RIGHT -> headRightOpen ?: headRight
+                        }
+                    } else {
+                        when(currentDirection) {
+                            Direction.UP -> headUp
+                            Direction.DOWN -> headDown
+                            Direction.LEFT -> headLeft
+                            Direction.RIGHT -> headRight
+                        }
                     } ?: headDown // Fallback to headDown or whatever available? Or shape
                     
                     if (bitmap != null) {

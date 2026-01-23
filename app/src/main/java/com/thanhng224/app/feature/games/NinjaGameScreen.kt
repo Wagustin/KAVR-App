@@ -59,13 +59,21 @@ enum class KnifeState { FLYING, STUCK, REBOUND }
 @Composable
 fun NinjaGameScreen(navController: NavController) {
     val mode = navController.currentBackStackEntry?.arguments?.getInt("mode") ?: 0 
+    val difficulty = navController.currentBackStackEntry?.arguments?.getInt("difficulty") ?: 0
     // mode 0 = Versus (2P)
     // mode 1 = Survival (1P)
+    
+    // Difficulty Settings
+    val (baseSpeed, collisionThreshold, speedMultiplier) = when(difficulty) {
+        0 -> Triple(0.025f, 0.3f, 1.02f) // Easy: Slow, Forgiving, 2% incease
+        1 -> Triple(0.035f, 0.25f, 1.02f) // Medium: Normal, Normal, 2% increase
+        else -> Triple(0.05f, 0.15f, 1.03f) // Hard: Fast, Strict, 3% increase
+    }
 
     // --- STATE ---
     var scores by remember { mutableStateOf(0 to 0) } // Top(P2) vs Bot(P1) / Survival: (High Score, Current Score)
     var targetRotation by remember { mutableFloatStateOf(0f) }
-    var rotationSpeed by remember { mutableFloatStateOf(0.03f) }
+    var rotationSpeed by remember { mutableFloatStateOf(baseSpeed) }
     var gameOver by remember { mutableStateOf(false) }
 
     // Knives
@@ -111,7 +119,7 @@ fun NinjaGameScreen(navController: NavController) {
                                      var collided = false
                                      if (mode == 1) {
                                          // Survival: Rebound = Game Over
-                                         if (checkCollision(hitAngle, knives)) collided = true
+                                         if (checkCollision(hitAngle, knives, collisionThreshold)) collided = true
                                      } else {
                                          // Versus: Just bounce off
                                          // (Simplified for now)
@@ -131,7 +139,7 @@ fun NinjaGameScreen(navController: NavController) {
                                          // Speed up rotation in Survival
                                          if (mode == 1) {
                                              if (Random.nextBoolean()) rotationSpeed = -rotationSpeed // Randomize direction
-                                             rotationSpeed *= 1.02f // 2% faster per hit
+                                             rotationSpeed *= speedMultiplier // Faster per hit
                                          }
                                      }
                              }
@@ -256,7 +264,7 @@ fun NinjaGameScreen(navController: NavController) {
                                 // Reset
                                 knives.clear()
                                 scores = 0 to 0
-                                rotationSpeed = 0.03f
+                                rotationSpeed = baseSpeed
                                 gameOver = false
                             }
                         }
@@ -278,19 +286,15 @@ fun NinjaGameScreen(navController: NavController) {
     }
 }
 
-fun checkCollision(hitAngle: Float, knives: List<Knife>): Boolean {
+fun checkCollision(hitAngle: Float, knives: List<Knife>, threshold: Float): Boolean {
     // Normalise hit angle to 0..2PI
     val normalizedHit = (hitAngle % (2 * PI.toFloat())).let { if (it < 0) it + 2 * PI.toFloat() else it }
     
     // Check against all STUCK knives
-    // Threshold: Knife Width / Circumference
-    // Approx 15 degrees (~0.26 rad)
-    val collisionThreshold = 0.25f 
-    
     return knives.any { k ->
         if (k.state == KnifeState.STUCK) {
             val normalizedK = (k.angle % (2 * PI.toFloat())).let { if (it < 0) it + 2 * PI.toFloat() else it }
-            kotlin.math.abs(normalizedHit - normalizedK) < collisionThreshold
+            kotlin.math.abs(normalizedHit - normalizedK) < threshold
         } else false
     }
 }
