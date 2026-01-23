@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
@@ -53,7 +54,7 @@ import androidx.navigation.NavController
 import com.thanhng224.app.presentation.navigation.Screen
 
 private enum class DialogStep {
-    HIDDEN, PLAYERS, GAME_TYPE, GAME_TYPE_MEMORY, DIFFICULTY, NINJA_MODE, PONG_MODE
+    HIDDEN, PLAYERS, GAME_TYPE, GAME_TYPE_MEMORY, DIFFICULTY, NINJA_MODE, PONG_MODE, MINIGOLF_MODE, MINIGOLF_SUBMODE
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,6 +66,8 @@ fun FavoritesScreen(navController: NavController) {
     var selectedGame by remember { mutableStateOf<String?>(null) } // Tracks which game is being launched
     var selectedPongMode by remember { mutableIntStateOf(0) }
     var selectedNinjaMode by remember { mutableIntStateOf(0) }
+    var selectedMiniGolfMode by remember { mutableIntStateOf(0) } // 0=1P, 1=2P
+    var selectedMiniGolfSubMode by remember { mutableIntStateOf(0) } // 0=Training, 1=Time, 2=AI
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
@@ -155,7 +158,7 @@ fun FavoritesScreen(navController: NavController) {
                     color = Color(0xFF8BC34A),
                     onClick = { 
                         selectedGame = "MINIGOLF"
-                        currentFlow = DialogStep.DIFFICULTY 
+                        currentFlow = DialogStep.MINIGOLF_MODE
                     }
                 )
             }
@@ -195,7 +198,32 @@ fun FavoritesScreen(navController: NavController) {
             )
         }
         
+        DialogStep.MINIGOLF_MODE -> {
+            MiniGolfModeSelectionDialog(
+                onDismiss = { currentFlow = DialogStep.HIDDEN },
+                onSelect = { mode ->
+                    selectedMiniGolfMode = mode
+                    if (mode == 0) {
+                        // 1 Player -> Ask Submode
+                        currentFlow = DialogStep.MINIGOLF_SUBMODE
+                    } else {
+                        // 2 Player -> Difficulty
+                        selectedMiniGolfSubMode = 0 // Irrelevant for 2P but set default
+                        currentFlow = DialogStep.DIFFICULTY
+                    }
+                }
+            )
+        }
 
+        DialogStep.MINIGOLF_SUBMODE -> {
+            MiniGolfSubModeSelectionDialog(
+                onDismiss = { currentFlow = DialogStep.MINIGOLF_MODE },
+                onSelect = { submode ->
+                    selectedMiniGolfSubMode = submode
+                    currentFlow = DialogStep.DIFFICULTY
+                }
+            )
+        }
 
         // --- Nuevos Juegos ---
         
@@ -257,7 +285,7 @@ fun FavoritesScreen(navController: NavController) {
 
                         "TIMER" -> navController.navigate(Screen.TimerGame.createRoute(selectedPlayerMode, difficulty))
                         "SOCCER" -> navController.navigate(Screen.SoccerGame.createRoute(difficulty))
-                        "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(difficulty))
+                        "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(selectedMiniGolfMode, selectedMiniGolfSubMode, difficulty))
                         "SNAKE" -> navController.navigate(Screen.SnakeGame.createRoute(difficulty))
                         "PONG" -> navController.navigate(Screen.PongGame.createRoute(selectedPongMode, difficulty))
                         "NINJA" -> navController.navigate(Screen.NinjaGame.createRoute(selectedNinjaMode, difficulty)) 
@@ -365,6 +393,26 @@ fun DifficultySelectionDialog(gameType: String?, onDismiss: () -> Unit, onSelect
         WideSelectionButton("$medText 🟡", null) { onSelect(Screen.MemoryGame.DIFFICULTY_MEDIUM) }
         Spacer(modifier = Modifier.height(8.dp))
         WideSelectionButton("$hardText 🔴", null) { onSelect(Screen.MemoryGame.DIFFICULTY_HARD) }
+    }
+}
+
+@Composable
+fun MiniGolfModeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
+    CustomDialogBase(onDismiss = onDismiss, title = "Mini Golf Players") {
+        WideSelectionButton("1 Jugador 🏌️", Icons.Default.Person) { onSelect(0) }
+        Spacer(modifier = Modifier.height(8.dp))
+        WideSelectionButton("2 Jugadores (Versus) ⚔️", Icons.Default.Gamepad) { onSelect(1) }
+    }
+}
+
+@Composable
+fun MiniGolfSubModeSelectionDialog(onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
+    CustomDialogBase(onDismiss = onDismiss, title = "Modo de Juego") {
+        WideSelectionButton("Entrenamiento (Golpes) ⛳", Icons.Default.SelfImprovement) { onSelect(0) }
+        Spacer(modifier = Modifier.height(8.dp))
+        WideSelectionButton("Contrarreloj ⏱️", Icons.Default.Timer) { onSelect(1) }
+        Spacer(modifier = Modifier.height(8.dp))
+        WideSelectionButton("Vs IA 🤖", Icons.Default.SmartToy) { onSelect(2) }
     }
 }
 

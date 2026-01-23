@@ -244,19 +244,33 @@ private fun SnakeBoard(
                     } ?: headDown // Fallback to headDown or whatever available? Or shape
                     
                     if (bitmap != null) {
-                         drawIntoCanvas { canvas ->
-                           val rect = androidx.compose.ui.geometry.Rect(topLeft, androidx.compose.ui.geometry.Size(cellPx, cellPx))
-                           // Clip to circle
-                           val path = androidx.compose.ui.graphics.Path().apply { addOval(rect) }
-                           canvas.save()
-                           canvas.clipPath(path)
-                           canvas.nativeCanvas.drawBitmap(
-                               bitmap, 
-                               null, 
-                               android.graphics.Rect(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt()), 
-                               null
-                           )
-                           canvas.restore()
+                        drawIntoCanvas { canvas ->
+                            // Scale head up by 1.6x to look bigger
+                            val scaleFactor = 1.6f
+                            val scaledSize = cellPx * scaleFactor
+                            val offset = (scaledSize - cellPx) / 2
+                            
+                            val rect = androidx.compose.ui.geometry.Rect(
+                                left = topLeft.x - offset,
+                                top = topLeft.y - offset,
+                                right = topLeft.x - offset + scaledSize,
+                                bottom = topLeft.y - offset + scaledSize
+                            )
+                            
+                            // Clip to circle (optional, but keeps it round if image is square)
+                            // or just draw the bitmap directly if it's already a transparent PNG
+                            // Let's keep a soft clip or no clip if we want the full "head" shape
+                             val path = androidx.compose.ui.graphics.Path().apply { addOval(rect) }
+                             canvas.save()
+                             canvas.clipPath(path)
+                             
+                            canvas.nativeCanvas.drawBitmap(
+                                bitmap, 
+                                null, 
+                                android.graphics.Rect(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt()), 
+                                null
+                            )
+                            canvas.restore()
                         }
                     } else {
                         // FALLBACK HEAD

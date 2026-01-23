@@ -21,15 +21,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import kotlin.math.abs
+import kotlin.math.min
 import kotlin.math.sqrt
+import kotlin.random.Random
 
-// --- PHYSICS CONSTANTS ---
-const val FRICTION = 0.98f
-const val MAX_POWER = 0.05f
+// --- CONSTANTS ---
+const val FRICTION = 0.96f // Stronger friction for cleaner stops
+const val STOP_THRESHOLD = 0.0002f
+const val HOLE_CAPTURE_SPEED = 0.012f // Ball must be slow to fall in
+const val MAX_POWER_DISPLAY = 200f // Visualization max length
+
+// Modes
+const val MODE_1P = 0
+const val MODE_2P = 1
+const val SUBMODE_TRAINING = 0
+const val SUBMODE_TIME = 1
+const val SUBMODE_AI = 2
 
 data class Wall(val x: Float, val y: Float, val w: Float, val h: Float)
-
 data class Level(
     val startPos: Offset,
     val holePos: Offset,
@@ -39,60 +50,110 @@ data class Level(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MiniGolfGameScreen(navController: NavController) {
+    // Arguments
+    val mode = navController.currentBackStackEntry?.arguments?.getInt("mode") ?: 0
+    val submode = navController.currentBackStackEntry?.arguments?.getInt("submode") ?: 0
     val difficulty = navController.currentBackStackEntry?.arguments?.getInt("difficulty") ?: 0
-    val holeRadius = when (difficulty) {
-        0 -> 0.05f
-        1 -> 0.04f
-        else -> 0.03f
-    }
-    val ballRadiusRel = 0.025f
 
+    // Difficulty Params
+    val holeRadiusDef = when (difficulty) {
+        0 -> 0.05f // Easy
+        1 -> 0.04f // Med
+        else -> 0.03f // Hard
+    }
+
+    // GAME STATE
     var levelIndex by remember { mutableIntStateOf(0) }
     var ballPos by remember { mutableStateOf(Offset(0.5f, 0.8f)) }
     var ballVelocity by remember { mutableStateOf(Offset.Zero) }
+    
+    // 2 Player / AI State
+    var currentPlayer by remember { mutableIntStateOf(1) } // 1 or 2
+    var p1Strokes by remember { mutableIntStateOf(0) }
+    var p2Strokes by remember { mutableIntStateOf(0) } // Or AI score
+    var p1TotalScore by remember { mutableIntStateOf(0) }
+    var p2TotalScore by remember { mutableIntStateOf(0) }
+
+    // Time Attack State
+    var timeLeft by remember { mutableLongStateOf(60000L) } // 60s per level?
+    var isTimeRunning by remember { mutableStateOf(false) }
+
+    // Input
     var dragStart by remember { mutableStateOf<Offset?>(null) }
     var dragCurrent by remember { mutableStateOf<Offset?>(null) }
+    
+    // Flow
     var hasWon by remember { mutableStateOf(false) }
-
-    // LEVELS
+    var gameOver by remember { mutableStateOf(false) }
+    var turnMessage by remember { mutableStateOf("") }
+    
+    // Levels (Expanded)
     val levels = remember {
         listOf(
-            // Lv 1: Simple
-            Level(
-                startPos = Offset(0.5f, 0.8f),
-                holePos = Offset(0.5f, 0.2f),
-                walls = emptyList()
-            ),
-            // Lv 2: Middle Block
-            Level(
-                startPos = Offset(0.5f, 0.8f),
-                holePos = Offset(0.5f, 0.15f),
-                walls = listOf(Wall(0.3f, 0.4f, 0.4f, 0.05f))
-            ),
-            // Lv 3: Zig Zag (Improved positioning)
-            Level(
-                startPos = Offset(0.15f, 0.85f), // Better start pos
-                holePos = Offset(0.9f, 0.1f),
-                walls = listOf(
-                    Wall(0.0f, 0.3f, 0.6f, 0.05f),
-                    Wall(0.4f, 0.6f, 0.6f, 0.05f)
-                )
-            )
+            Level(Offset(0.5f, 0.8f), Offset(0.5f, 0.2f), listOf(Wall(0.1f, 0.4f, 0.3f, 0.05f), Wall(0.6f, 0.4f, 0.3f, 0.05f))),
+            Level(Offset(0.5f, 0.85f), Offset(0.5f, 0.1f), listOf(Wall(0.3f, 0.3f, 0.4f, 0.05f), Wall(0.2f, 0.6f, 0.6f, 0.05f))),
+            Level(Offset(0.2f, 0.8f), Offset(0.8f, 0.2f), listOf(Wall(0.45f, 0.2f, 0.1f, 0.6f))),
+            Level(Offset(0.5f, 0.9f), Offset(0.5f, 0.1f), listOf(
+                Wall(0.1f, 0.3f, 0.4f, 0.05f), Wall(0.5f, 0.5f, 0.4f, 0.05f), Wall(0.1f, 0.7f, 0.4f, 0.05f)
+            ))
         )
     }
-
     val currentLevel = levels[levelIndex]
-
-    // Reset Ball on Level Change
-    LaunchedEffect(levelIndex) {
-        ballPos = currentLevel.startPos
-        ballVelocity = Offset.Zero
-        hasWon = false
-        dragStart = null
-        dragCurrent = null
+    
+    // Timer Logic
+    LaunchedEffect(isTimeRunning, levelIndex) {
+        if (mode == MODE_1P && submode == SUBMODE_TIME) {
+            val startTime = System.currentTimeMillis()
+            val initialTime = timeLeft
+            while(isTimeRunning && !hasWon && !gameOver) {
+                val elapsed = System.currentTimeMillis() - startTime
+                timeLeft = (initialTime - elapsed).coerceAtLeast(0L)
+                if (timeLeft == 0L) {
+                    gameOver = true // Time Over
+                    isTimeRunning = false
+                }
+                delay(100)
+            }
+        }
     }
 
-    // GAME LOOP
+    // Reset Logic
+    fun resetBall() {
+        ballPos = currentLevel.startPos
+        ballVelocity = Offset.Zero
+    }
+
+    fun nextLevel() {
+        if (levelIndex < levels.size - 1) {
+            levelIndex++
+            resetBall()
+            hasWon = false
+            p1Strokes = 0
+            p2Strokes = 0
+            currentPlayer = 1
+            if (mode == MODE_1P && submode == SUBMODE_TIME) {
+                 timeLeft += 30000L // Add 30s bonus
+                 isTimeRunning = true
+            }
+        } else {
+            // Game Finished
+            gameOver = true
+        }
+    }
+
+    // AI Logic (Simple Random Score)
+    fun playAI() {
+        // AI takes 1-4 strokes depending on difficulty
+        val aiSkill = when(difficulty) {
+            0 -> Random.nextInt(3, 6) // Easy: Bad
+            1 -> Random.nextInt(2, 5) // Med
+            2 -> Random.nextInt(1, 3) // Hard: Good
+        }
+        p2Strokes = aiSkill
+        p2TotalScore += aiSkill
+    }
+
+    // Physics Loop
     LaunchedEffect(Unit) {
         var lastTime = withFrameMillis { it }
         while (true) {
@@ -100,124 +161,149 @@ fun MiniGolfGameScreen(navController: NavController) {
                 val delta = (frameTime - lastTime) / 16f
                 lastTime = frameTime
                 
-                val subSteps = 5
-                val subDelta = delta / subSteps
+                // --- SUB-STEP PHYSICS ---
+                val steps = 6
+                val dt = delta / steps
                 
-                for (i in 0 until subSteps) {
-                    if (ballVelocity == Offset.Zero || hasWon) break
-
-                    // Apply Velocity (Sub-step)
-                    var nextPos = ballPos + (ballVelocity * subDelta)
+                for(i in 0 until steps) {
+                    if (hasWon || gameOver) break
                     
-                    // --- COLLISION RESOLUTION (Robust) ---
-                    var collided = false
-                    
-                    // 1. Screen Edges Collision
-                    if (nextPos.x < ballRadiusRel) {
-                        nextPos = nextPos.copy(x = ballRadiusRel)
-                        ballVelocity = ballVelocity.copy(x = -ballVelocity.x * 0.8f) 
-                        collided = true
-                    } else if (nextPos.x > 1f - ballRadiusRel) {
-                        nextPos = nextPos.copy(x = 1f - ballRadiusRel)
-                        ballVelocity = ballVelocity.copy(x = -ballVelocity.x * 0.8f)
-                        collided = true
-                    }
-                    
-                    if (nextPos.y < ballRadiusRel) {
-                            nextPos = nextPos.copy(y = ballRadiusRel)
-                            ballVelocity = ballVelocity.copy(y = -ballVelocity.y * 0.8f)
-                            collided = true
-                    } else if (nextPos.y > 1f - ballRadiusRel) {
-                        nextPos = nextPos.copy(y = 1f - ballRadiusRel)
-                        ballVelocity = ballVelocity.copy(y = -ballVelocity.y * 0.8f)
-                        collided = true
-                    }
-
-                    // 2. Wall Collision (Circle vs AABB)
-                    currentLevel.walls.forEach { wall ->
-                        val closestX = nextPos.x.coerceIn(wall.x, wall.x + wall.w)
-                        val closestY = nextPos.y.coerceIn(wall.y, wall.y + wall.h)
+                    if (ballVelocity != Offset.Zero) {
+                        var nextPos = ballPos + (ballVelocity * dt)
                         
-                        val distX = nextPos.x - closestX
-                        val distY = nextPos.y - closestY
-                        val distSq = distX*distX + distY*distY
+                        // Collisions
+                        val ballR = 0.025f // Relative Radius
+                        var collided = false
                         
-                        if (distSq < (ballRadiusRel * ballRadiusRel)) {
-                            val dist = sqrt(distSq)
-                            val normal = if (dist > 0.0001f) Offset(distX/dist, distY/dist) else {
-                                val dL = nextPos.x - wall.x
-                                val dR = (wall.x + wall.w) - nextPos.x
-                                val dT = nextPos.y - wall.y
-                                val dB = (wall.y + wall.h) - nextPos.y
-                                
-                                val minD = minOf(dL, dR, dT, dB)
-                                when(minD) {
-                                    dL -> Offset(-1f, 0f)
-                                    dR -> Offset(1f, 0f)
-                                    dT -> Offset(0f, -1f)
-                                    else -> Offset(0f, 1f)
+                        // 1. Walls (AABB vs Circle)
+                        // Push out logic to prevent tunneling
+                        for (wall in currentLevel.walls) {
+                             // Nearest point on wall rect to ball center
+                             val closestX = nextPos.x.coerceIn(wall.x, wall.x + wall.w)
+                             val closestY = nextPos.y.coerceIn(wall.y, wall.y + wall.h)
+                             
+                             val dx = nextPos.x - closestX
+                             val dy = nextPos.y - closestY
+                             
+                             if ((dx*dx + dy*dy) < (ballR * ballR)) {
+                                 // HIT
+                                 val dist = sqrt(dx*dx + dy*dy)
+                                 val normal = if (dist > 0.0001f) Offset(dx/dist, dy/dist) else Offset(0f, 1f)
+                                 
+                                 // Reflect Velocity
+                                 val dot = ballVelocity.x * normal.x + ballVelocity.y * normal.y
+                                 if (dot < 0) {
+                                     ballVelocity -= (normal * 2f * dot)
+                                     ballVelocity *= 0.8f // Bounce loss
+                                 }
+                                 
+                                 // PUSH OUT (Important!)
+                                 val overlap = ballR - dist
+                                 nextPos += normal * (overlap + 0.0005f)
+                             }
+                        }
+                        
+                        // 2. Screen Borders
+                        if (nextPos.x < ballR) { nextPos = nextPos.copy(x = ballR); ballVelocity = ballVelocity.copy(x = -ballVelocity.x * 0.8f) }
+                        if (nextPos.x > 1f - ballR) { nextPos = nextPos.copy(x = 1f - ballR); ballVelocity = ballVelocity.copy(x = -ballVelocity.x * 0.8f) }
+                        if (nextPos.y < ballR) { nextPos = nextPos.copy(y = ballR); ballVelocity = ballVelocity.copy(y = -ballVelocity.y * 0.8f) }
+                        if (nextPos.y > 1f - ballR) { nextPos = nextPos.copy(y = 1f - ballR); ballVelocity = ballVelocity.copy(y = -ballVelocity.y * 0.8f) }
+                        
+                        ballPos = nextPos
+                    }
+                }
+                
+                // Friction
+                if (ballVelocity != Offset.Zero) {
+                    ballVelocity *= 1f - (1f - FRICTION) * delta
+                    if (ballVelocity.getDistance() < STOP_THRESHOLD) {
+                        ballVelocity = Offset.Zero
+                        
+                        // TURN LOGIC (End of Shot)
+                        if (!hasWon) {
+                             if (mode == MODE_2P) {
+                                 // Switch Turn logic is handled AFTER shot
+                                 // Handled in DragEnd actually? No, wait here for stop.
+                                 // For now, P1 plays until hole? Or turn based per shot?
+                                 // Standard minigolf: Turn based per shot only if out of bounds? 
+                                 // Let's do: P1 plays hole until finish, then P2? Or shot by shot?
+                                 // Simplest: P1 finishes hole, then P2 plays same hole.
+                                 // But that requires stage reset.
+                                 
+                                 // Let's do: Turn swap every stroke? That's confusing on one screen.
+                                 // Better: P1 plays full hole, then P2 plays full hole.
+                                 // Implemented: CURRENT STATE checks if P1 done? 
+                             }
+                        }
+                    }
+                }
+                
+                // Win Check
+                if (!hasWon && !gameOver) {
+                    val d = (ballPos - currentLevel.holePos).getDistance()
+                    if (d < holeRadiusDef) {
+                        // CAPTURE: Must be slow enough!
+                        if (ballVelocity.getDistance() < HOLE_CAPTURE_SPEED) {
+                            // SCORE!
+                            ballVelocity = Offset.Zero
+                            ballPos = currentLevel.holePos
+                            
+                            if (mode == MODE_2P) {
+                                if (currentPlayer == 1) {
+                                    p1TotalScore += p1Strokes
+                                    currentPlayer = 2
+                                    turnMessage = "¡Turno del Jugador 2!"
+                                    p2Strokes = 0 // Reset for their turn
+                                    // Reset ball to start after delay
+                                } else {
+                                    p2TotalScore += p2Strokes
+                                    hasWon = true // Both finished
                                 }
-                            }
-                            
-                            val dot = ballVelocity.x * normal.x + ballVelocity.y * normal.y
-                            if (dot < 0) {
-                                ballVelocity = ballVelocity - (normal * 2f * dot)
-                                ballVelocity *= 0.8f 
-                            }
-                            
-                            val overlap = ballRadiusRel - dist
-                            if (overlap > 0) {
-                                nextPos += normal * (overlap + 0.0001f)
+                            } else {
+                                p1TotalScore += p1Strokes
+                                if (submode == SUBMODE_AI) playAI()
+                                hasWon = true
                             }
                         }
                     }
-
-                    ballPos = nextPos
-                }
-                
-                // Friction (Applied once per frame for consistent feel)
-                if (ballVelocity != Offset.Zero && !hasWon) {
-                    val frictionFactor = 1f - (1f - FRICTION) * delta
-                    ballVelocity *= frictionFactor
-                    
-                    // Stop Threshold
-                    if (ballVelocity.getDistance() < 0.0003f) {
-                        ballVelocity = Offset.Zero
-                    }
-                }
-                
-                // Win Check (After all sub-steps)
-                if (!hasWon) {
-                    val distToHole = (ballPos - currentLevel.holePos).getDistance()
-                    if (distToHole < holeRadius * 0.5f) {
-                            if (ballVelocity.getDistance() < 0.015f) {
-                                hasWon = true
-                                ballVelocity = Offset.Zero
-                                ballPos = currentLevel.holePos
-                            }
-                    }
                 }
             }
+        }
+    }
+    
+    // Delayed Turn Switch / Win
+    LaunchedEffect(turnMessage) {
+        if (turnMessage.isNotEmpty()) {
+            delay(2000)
+            resetBall()
+            turnMessage = ""
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mini Golf - Nivel ${levelIndex + 1}") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                title = { 
+                    Column {
+                        Text("Hoyo ${levelIndex + 1}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        if (mode == MODE_1P && submode == SUBMODE_TIME) {
+                            Text("Tiempo: ${timeLeft / 1000}s", fontSize = 14.sp, color = if(timeLeft < 10000) Color.Red else Color.Black)
+                        }
                     }
                 },
                 actions = {
+                    Text("Golpes: $p1Strokes", modifier = Modifier.padding(end=16.dp), fontWeight = FontWeight.Bold)
                     IconButton(onClick = { 
-                        // Reset Level
-                        ballPos = currentLevel.startPos
-                        ballVelocity = Offset.Zero
-                        hasWon = false
+                         resetBall()
+                         // Penalty?
+                         p1Strokes++
                     }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reiniciar")
+                        Icon(Icons.Default.Refresh, contentDescription = "R")
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -227,47 +313,48 @@ fun MiniGolfGameScreen(navController: NavController) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(Color(0xFF4CAF50)) // Base Green
+                .background(Color(0xFF2E7D32))
                 .pointerInput(Unit) {
                     detectDragGestures(
                         onDragStart = { offset ->
-                             if (ballVelocity == Offset.Zero && !hasWon) {
-                                  val w = size.width
-                                  val h = size.height
-                                  val ballPixel = Offset(w * ballPos.x, h * ballPos.y)
-                                  val dist = (offset - ballPixel).getDistance()
-                                  
-                                  if (dist < w * 0.15f) { 
-                                      dragStart = ballPixel
-                                      dragCurrent = offset
-                                  }
-                             }
+                            if (ballVelocity == Offset.Zero && !hasWon && turnMessage.isEmpty()) {
+                                val w = size.width
+                                val h = size.height
+                                val ballPx = Offset(w * ballPos.x, h * ballPos.y)
+                                if ((offset - ballPx).getDistance() < w * 0.15f) {
+                                    dragStart = ballPx
+                                    dragCurrent = offset
+                                }
+                            }
                         },
                         onDragEnd = {
-                             if (dragStart != null && dragCurrent != null && !hasWon) {
-                                 // Drag Back -> Shoot Forward
-                                 val dragVec = dragStart!! - dragCurrent!! 
-                                 
-                                 val powerX = dragVec.x * 0.0002f 
-                                 val powerY = dragVec.y * 0.0002f
-                                 
-                                 val rawVel = Offset(powerX, powerY)
-                                 val mag = rawVel.getDistance()
-                                 if (mag > 0.002f) { 
-                                     ballVelocity = if (mag > MAX_POWER) {
-                                         rawVel / mag * MAX_POWER
-                                     } else {
-                                         rawVel
-                                     }
-                                 }
-                             }
-                             dragStart = null
-                             dragCurrent = null
-                        },
-                        onDrag = { change, _ -> 
-                            if (dragStart != null) {
-                                dragCurrent = change.position
+                            if (dragStart != null && dragCurrent != null) {
+                                val vec = dragStart!! - dragCurrent!!
+                                val w = size.width
+                                
+                                // FORCE CALCULATION (Reduced Sensitivity)
+                                val dragDist = vec.getDistance()
+                                val minDrag = w * 0.05f
+                                
+                                if (dragDist > minDrag) {
+                                    // Power is proportional to drag distance
+                                    val power = min(dragDist, w * 0.4f) * 0.00015f // Tweaked constant
+                                    val dir = vec / dragDist
+                                    
+                                    ballVelocity = dir * power
+                                    
+                                    // Count Stroke
+                                    if (mode == MODE_2P && currentPlayer == 2) p2Strokes++ else p1Strokes++
+                                    
+                                    // Start Timer on first hit?
+                                    if (mode == MODE_1P && submode == SUBMODE_TIME && !isTimeRunning) isTimeRunning = true
+                                }
                             }
+                            dragStart = null
+                            dragCurrent = null
+                        },
+                        onDrag = { change, _ ->
+                            if (dragStart != null) dragCurrent = change.position
                         }
                     )
                 }
@@ -276,153 +363,98 @@ fun MiniGolfGameScreen(navController: NavController) {
                 val w = size.width
                 val h = size.height
                 
-                // 1. PREMIUM CHECKERED GRASS
-                val tileSize = w / 10f 
-                val rows = (h / tileSize).toInt() + 1
-                val cols = 10
-                
-                for(row in 0 until rows) {
-                    for(col in 0 until cols) {
-                        val isEven = (row + col) % 2 == 0
-                        val color = if (isEven) Color(0xFF43A047) else Color(0xFF4CAF50)
-                        
+                // 1. Grass Tiles
+                val ts = w / 8
+                for (r in 0..(h/ts).toInt()) {
+                    for (c in 0..7) {
                         drawRect(
-                            color = color,
-                            topLeft = Offset(col * tileSize, row * tileSize),
-                            size = Size(tileSize, tileSize)
+                            color = if ((r+c)%2==0) Color(0xFF388E3C) else Color(0xFF2E7D32),
+                            topLeft = Offset(c*ts, r*ts), size = Size(ts, ts)
                         )
                     }
                 }
-
-                // 2. HOLE (WITH DEPTH)
-                val holeCenter = Offset(w * currentLevel.holePos.x, h * currentLevel.holePos.y)
-                val holeRadPx = w * holeRadius
                 
-                // Outer Shadow/Gradient for Depth
-                drawCircle(
-                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                        colors = listOf(Color.Black.copy(alpha=0.8f), Color.Black.copy(alpha=0.2f)),
-                        center = holeCenter,
-                        radius = holeRadPx
-                    ),
-                    radius = holeRadPx,
-                    center = holeCenter
-                )
+                // 2. Start Area
+                drawCircle(Color.White.copy(alpha=0.3f), radius = w*0.06f, center = Offset(w*currentLevel.startPos.x, h*currentLevel.startPos.y))
+
+                // 3. Walls
+                currentLevel.walls.forEach { 
+                    drawRect(Color(0xFF5D4037), topLeft = Offset(w*it.x, h*it.y), size = Size(w*it.w, h*it.h))
+                    drawRect(Color(0xFF8D6E63), topLeft = Offset(w*it.x+4f, h*it.y+4f), size = Size(w*it.w-8f, h*it.h-8f))
+                }
                 
-                // FLAG (Red Triangle + Pole)
-                // Only draw if ball not inside or won
-                if (!hasWon) {
-                    val poleBase = holeCenter
-                    val poleTop = holeCenter - Offset(0f, w * 0.15f) // Pole height based on width
-                    
-                    // Pole
-                    drawLine(
-                        color = Color.White,
-                        start = poleBase,
-                        end = poleTop,
-                        strokeWidth = 4f
-                    )
-                    
-                    // Flag (Triangle)
-                    val path = Path().apply {
-                        moveTo(poleTop.x, poleTop.y)
-                        lineTo(poleTop.x + w * 0.08f, poleTop.y + w * 0.03f)
-                        lineTo(poleTop.x, poleTop.y + w * 0.06f)
-                        close()
-                    }
-                    drawPath(path, Color.Red)
-                }
+                // 4. Hole
+                val holePx = Offset(w*currentLevel.holePos.x, h*currentLevel.holePos.y)
+                drawCircle(Color.Black, radius = w * holeRadiusDef, center = holePx)
+                drawCircle(Color.Black.copy(alpha=0.3f), radius = w * holeRadiusDef + 4f, center = holePx) // Shadow ring
 
-                // 3. WALLS (ARCADE STYLE)
-                currentLevel.walls.forEach { wall ->
-                    val wx = w * wall.x
-                    val wy = h * wall.y
-                    val ww = w * wall.w
-                    val wh = h * wall.h
-                    
-                    // Simple Box Shadow
-                    drawRoundRect(
-                        color = Color.Black.copy(alpha = 0.4f),
-                        topLeft = Offset(wx + 8f, wy + 8f),
-                        size = Size(ww, wh),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f)
-                    )
-
-                    // Main Wall (Vibrant Brick/Wood Color)
-                    drawRoundRect(
-                        color = Color(0xFFFF7043), // Deep Orange
-                        topLeft = Offset(wx, wy),
-                        size = Size(ww, wh),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f)
-                    )
-                    
-                    // Border
-                    drawRoundRect(
-                        color = Color(0xFFBF360C), // Darker Orange Outline
-                        topLeft = Offset(wx, wy),
-                        size = Size(ww, wh),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f),
-                        style = Stroke(width = 6f)
-                    )
-                }
-
-                // 4. DRAG LINE (AIMING)
+                // 5. Drag Line
                 if (dragStart != null && dragCurrent != null) {
-                    val dragVec = dragCurrent!! - dragStart!!
-                    val ballPixelPos = Offset(w * ballPos.x, h * ballPos.y)
+                    val start = dragStart!!
+                    val end = dragCurrent!!
+                    val dist = (start - end).getDistance()
                     
-                    // Arcade Arrow
-                    drawLine(
-                        color = Color.Yellow,
-                        start = ballPixelPos,
-                        end = ballPixelPos - dragVec,
-                        strokeWidth = 10f,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round
-                    )
+                    // Clamped visualization
+                    val maxLen = w * 0.4f
+                    val visEnd = if (dist > maxLen) start - (start - end) * (maxLen/dist) else end
+                    
+                    // Arrow line
+                    drawLine(Color.Yellow, start, visEnd, strokeWidth = 8f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    
+                    // Power bar logic? Or just line length.
                 }
 
-                // 5. BALL (ARCADE STYLE)
-                val ballPixelPos = Offset(w * ballPos.x, h * ballPos.y)
-                val ballRadPx = w * ballRadiusRel
-                
-                // Simple Shadow
-                 drawCircle(
-                    color = Color.Black.copy(alpha = 0.3f), 
-                    radius = ballRadPx,
-                    center = ballPixelPos + Offset(6f, 6f)
-                )
-                
-                // Solid White Ball + Thick Outline
-                drawCircle(
-                    color = Color.White,
-                    radius = ballRadPx,
-                    center = ballPixelPos
-                )
-                 drawCircle(
-                    color = Color.Black,
-                    radius = ballRadPx,
-                    center = ballPixelPos,
-                    style = Stroke(width = 4f)
-                )
+                // 6. Ball
+                val bPos = Offset(w*ballPos.x, h*ballPos.y)
+                val bRad = w * 0.025f
+                drawCircle(Color.Black.copy(alpha=0.4f), radius = bRad, center = bPos + Offset(5f,5f))
+                drawCircle(Color.White, radius = bRad, center = bPos)
             }
             
-            if (hasWon) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)), contentAlignment = Alignment.Center) {
+            // TURN MESSAGE OVERLAY
+            if (turnMessage.isNotEmpty()) {
+                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.7f)), contentAlignment = Alignment.Center) {
+                     Text(turnMessage, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                 }
+            }
+
+            // WIN / GAME OVER OVERLAY
+            if (hasWon || gameOver) {
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.8f)), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("¡HOYO! 🎯", color = Color.Yellow, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black)
-                        Spacer(modifier = Modifier.height(24.dp))
-                        if (levelIndex < levels.size - 1) {
-                            Button(
-                                onClick = { levelIndex++ },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)) // Bright Green
-                            ) {
-                                Text("NEXT LEVEL ▶", fontWeight = FontWeight.Bold, color = Color.Black)
-                            }
+                        if (gameOver && mode == MODE_1P && submode == SUBMODE_TIME && timeLeft == 0L) {
+                             Text("¡TIEMPO AGOTADO!", color = Color.Red, fontSize = 32.sp, fontWeight = FontWeight.Bold)
                         } else {
-                            Text("YOU WIN! 🏆", color = Color.Cyan, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { levelIndex = 0 }) {
-                                Text("REPLAY ↺")
+                             Text("¡NIVEL COMPLETADO!", color = Color.Yellow, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                             Text("Golpes: $p1Strokes", color = Color.White, fontSize = 20.sp)
+                             
+                             if (mode == MODE_2P) {
+                                 Text("J2 Golpes: $p2Strokes", color = Color.Cyan, fontSize = 20.sp)
+                                 val winner = if(p1Strokes < p2Strokes) "¡Gana Jugador 1!" else if(p2Strokes < p1Strokes) "¡Gana Jugador 2!" else "¡Empate!"
+                                 Spacer(Modifier.height(10.dp))
+                                 Text(winner, color = Color.Green, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                             } else if (submode == SUBMODE_AI) {
+                                 Text("IA Golpes: $p2Strokes", color = Color.Cyan, fontSize = 20.sp)
+                                 val winner = if(p1Strokes < p2Strokes) "¡Ganaste!" else "Perdiste..."
+                                 Spacer(Modifier.height(10.dp))
+                                 Text(winner, color = Color.Green, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                             }
+                        }
+                        
+                        Spacer(Modifier.height(30.dp))
+                        Row {
+                            Button(onClick = { 
+                                // Restart Level
+                                resetBall()
+                                hasWon = false
+                                gameOver = false
+                                p1Strokes = 0
+                                p2Strokes = 0
+                                currentPlayer = 1
+                            }) { Text("Reintentar") }
+                            Spacer(Modifier.width(16.dp))
+                            Button(onClick = { nextLevel() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676))) { 
+                                Text(if (levelIndex < levels.size - 1) "Siguiente" else "Terminar", color = Color.Black) 
                             }
                         }
                     }
