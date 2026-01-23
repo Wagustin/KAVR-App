@@ -100,9 +100,14 @@ fun MiniGolfGameScreen(navController: NavController) {
                 val delta = (frameTime - lastTime) / 16f
                 lastTime = frameTime
                 
-                if (ballVelocity != Offset.Zero && !hasWon) {
-                    // Apply Velocity
-                    var nextPos = ballPos + (ballVelocity * delta)
+                val subSteps = 5
+                val subDelta = delta / subSteps
+                
+                for (i in 0 until subSteps) {
+                    if (ballVelocity == Offset.Zero || hasWon) break
+
+                    // Apply Velocity (Sub-step)
+                    var nextPos = ballPos + (ballVelocity * subDelta)
                     
                     // --- COLLISION RESOLUTION (Robust) ---
                     var collided = false
@@ -110,7 +115,7 @@ fun MiniGolfGameScreen(navController: NavController) {
                     // 1. Screen Edges Collision
                     if (nextPos.x < ballRadiusRel) {
                         nextPos = nextPos.copy(x = ballRadiusRel)
-                        ballVelocity = ballVelocity.copy(x = -ballVelocity.x * 0.8f) // Bounce dampening
+                        ballVelocity = ballVelocity.copy(x = -ballVelocity.x * 0.8f) 
                         collided = true
                     } else if (nextPos.x > 1f - ballRadiusRel) {
                         nextPos = nextPos.copy(x = 1f - ballRadiusRel)
@@ -119,9 +124,9 @@ fun MiniGolfGameScreen(navController: NavController) {
                     }
                     
                     if (nextPos.y < ballRadiusRel) {
-                         nextPos = nextPos.copy(y = ballRadiusRel)
-                         ballVelocity = ballVelocity.copy(y = -ballVelocity.y * 0.8f)
-                         collided = true
+                            nextPos = nextPos.copy(y = ballRadiusRel)
+                            ballVelocity = ballVelocity.copy(y = -ballVelocity.y * 0.8f)
+                            collided = true
                     } else if (nextPos.y > 1f - ballRadiusRel) {
                         nextPos = nextPos.copy(y = 1f - ballRadiusRel)
                         ballVelocity = ballVelocity.copy(y = -ballVelocity.y * 0.8f)
@@ -130,7 +135,6 @@ fun MiniGolfGameScreen(navController: NavController) {
 
                     // 2. Wall Collision (Circle vs AABB)
                     currentLevel.walls.forEach { wall ->
-                        // Find closest point on Rect to Circle Center
                         val closestX = nextPos.x.coerceIn(wall.x, wall.x + wall.w)
                         val closestY = nextPos.y.coerceIn(wall.y, wall.y + wall.h)
                         
@@ -139,11 +143,8 @@ fun MiniGolfGameScreen(navController: NavController) {
                         val distSq = distX*distX + distY*distY
                         
                         if (distSq < (ballRadiusRel * ballRadiusRel)) {
-                            // Collision!
                             val dist = sqrt(distSq)
                             val normal = if (dist > 0.0001f) Offset(distX/dist, distY/dist) else {
-                                // Fallback normal if center inside rect (should rarely happen with small steps)
-                                // Determine closest edge
                                 val dL = nextPos.x - wall.x
                                 val dR = (wall.x + wall.w) - nextPos.x
                                 val dT = nextPos.y - wall.y
@@ -158,15 +159,12 @@ fun MiniGolfGameScreen(navController: NavController) {
                                 }
                             }
                             
-                            // Reflect Velocity: v' = v - 2(v.n)n
                             val dot = ballVelocity.x * normal.x + ballVelocity.y * normal.y
-                            // Only reflect if moving TOWARDS the wall
                             if (dot < 0) {
                                 ballVelocity = ballVelocity - (normal * 2f * dot)
-                                ballVelocity *= 0.8f // Bounce loss
+                                ballVelocity *= 0.8f 
                             }
                             
-                            // Push out
                             val overlap = ballRadiusRel - dist
                             if (overlap > 0) {
                                 nextPos += normal * (overlap + 0.0001f)
@@ -175,8 +173,10 @@ fun MiniGolfGameScreen(navController: NavController) {
                     }
 
                     ballPos = nextPos
-                    
-                    // Friction
+                }
+                
+                // Friction (Applied once per frame for consistent feel)
+                if (ballVelocity != Offset.Zero && !hasWon) {
                     val frictionFactor = 1f - (1f - FRICTION) * delta
                     ballVelocity *= frictionFactor
                     
@@ -184,15 +184,17 @@ fun MiniGolfGameScreen(navController: NavController) {
                     if (ballVelocity.getDistance() < 0.0003f) {
                         ballVelocity = Offset.Zero
                     }
-                    
-                    // Win Check
+                }
+                
+                // Win Check (After all sub-steps)
+                if (!hasWon) {
                     val distToHole = (ballPos - currentLevel.holePos).getDistance()
-                    if (distToHole < holeRadius * 0.5f) { // Must be very close to center
-                         if (ballVelocity.getDistance() < 0.015f) { // And slow
-                             hasWon = true
-                             ballVelocity = Offset.Zero
-                             ballPos = currentLevel.holePos
-                         }
+                    if (distToHole < holeRadius * 0.5f) {
+                            if (ballVelocity.getDistance() < 0.015f) {
+                                hasWon = true
+                                ballVelocity = Offset.Zero
+                                ballPos = currentLevel.holePos
+                            }
                     }
                 }
             }

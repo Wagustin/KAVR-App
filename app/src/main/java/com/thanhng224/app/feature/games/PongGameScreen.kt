@@ -70,8 +70,8 @@ fun PongGameScreen(navController: NavController) {
     // Load Bitmaps
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            agusBitmap = loadBitmapFromFolder(context, "agus")
-            katBitmap = loadBitmapFromFolder(context, "kat")
+            agusBitmap = loadBitmapFromDrawable(context, "b_agus")
+            katBitmap = loadBitmapFromDrawable(context, "b_kat")
         }
     }
 
@@ -132,18 +132,15 @@ fun PongGameScreen(navController: NavController) {
     }
 }
 
-// Helper to load bitmap safely
-fun loadBitmapFromFolder(context: Context, folderName: String): Bitmap? {
+// Helper to load bitmap from drawable resources safely
+fun loadBitmapFromDrawable(context: Context, name: String): Bitmap? {
     return try {
-        val folder = File(context.filesDir, "photos/$folderName")
-        if (folder.exists() && folder.isDirectory) {
-            val file = folder.listFiles()?.firstOrNull { 
-                it.extension.lowercase() in listOf("jpg", "jpeg", "png") 
-            }
-            if (file != null) {
-                BitmapFactory.decodeFile(file.absolutePath)
-            } else null
-        } else null
+        val resId = context.resources.getIdentifier(name, "drawable", context.packageName)
+        if (resId != 0) {
+            BitmapFactory.decodeResource(context.resources, resId)
+        } else {
+            null
+        }
     } catch (e: Exception) {
         e.printStackTrace()
         null

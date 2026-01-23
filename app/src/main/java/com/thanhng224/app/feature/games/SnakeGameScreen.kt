@@ -130,11 +130,10 @@ private fun SnakeBoard(
     
     androidx.compose.runtime.LaunchedEffect(Unit) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            fun load(name: String) = loadBitmapFromFolder(context, "snake/$name")
-            headUp = load("head_up")
-            headDown = load("head_down")
-            headLeft = load("head_left")
-            headRight = load("head_right")
+            headUp = loadBitmapFromDrawable(context, "snake_head_up")
+            headDown = loadBitmapFromDrawable(context, "snake_head_down")
+            headLeft = loadBitmapFromDrawable(context, "snake_head_left")
+            headRight = loadBitmapFromDrawable(context, "snake_head_right")
         }
     }
 
