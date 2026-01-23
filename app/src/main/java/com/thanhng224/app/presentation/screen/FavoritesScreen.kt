@@ -53,7 +53,7 @@ import androidx.navigation.NavController
 import com.thanhng224.app.presentation.navigation.Screen
 
 private enum class DialogStep {
-    HIDDEN, PLAYERS, GAME_TYPE, GAME_TYPE_MEMORY, DIFFICULTY, SNAKE_MODE, NINJA_MODE, PONG_MODE
+    HIDDEN, PLAYERS, GAME_TYPE, GAME_TYPE_MEMORY, DIFFICULTY, NINJA_MODE, PONG_MODE
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -195,15 +195,7 @@ fun FavoritesScreen(navController: NavController) {
             )
         }
         
-        DialogStep.SNAKE_MODE -> {
-            SnakeModeSelectionDialog(
-                onDismiss = { currentFlow = DialogStep.HIDDEN },
-                onSelect = { mode ->
-                    navController.navigate(Screen.SnakeGame.createRoute(mode))
-                    currentFlow = DialogStep.HIDDEN
-                }
-            )
-        }
+
 
         // --- Nuevos Juegos ---
         

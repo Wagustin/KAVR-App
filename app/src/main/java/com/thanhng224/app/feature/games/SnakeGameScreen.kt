@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.foundation.border
+import androidx.compose.animation.animateColorAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import kotlin.math.abs
@@ -162,7 +163,7 @@ private fun SnakeBoard(
             }
     ) {
         // HEALTHY MODE VISUALS
-        val borderColor = if (isHealthyMode) androidx.compose.animation.animateColorAsState(
+        val borderColor = if (isHealthyMode) animateColorAsState(
             targetValue = if(System.currentTimeMillis() % 500 < 250) Color.Yellow else Color(0xFFFFD700),
             label = "flash"
         ).value else Color.Transparent
