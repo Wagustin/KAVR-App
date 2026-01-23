@@ -146,8 +146,8 @@ fun MiniGolfGameScreen(navController: NavController) {
         // AI takes 1-4 strokes depending on difficulty
         val aiSkill = when(difficulty) {
             0 -> Random.nextInt(3, 6) // Easy: Bad
-            1 -> Random.nextInt(2, 5) // Med
             2 -> Random.nextInt(1, 3) // Hard: Good
+            else -> Random.nextInt(2, 5) // Med (Default)
         }
         p2Strokes = aiSkill
         p2TotalScore += aiSkill
