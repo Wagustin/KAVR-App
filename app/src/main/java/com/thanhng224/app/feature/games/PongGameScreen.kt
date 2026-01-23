@@ -48,8 +48,8 @@ import kotlin.math.abs
 import kotlin.random.Random
 
 // --- CONFIG ---
-const val PADDLE_WIDTH_DP = 80f
-const val PADDLE_HEIGHT_DP = 20f
+const val PADDLE_WIDTH_DP = 120f
+const val PADDLE_HEIGHT_DP = 45f
 const val BALL_RADIUS_DP = 10f
 const val INITIAL_SPEED = 10f
 
