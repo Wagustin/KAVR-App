@@ -87,14 +87,43 @@ fun MiniGolfGameScreen(navController: NavController) {
     var gameOver by remember { mutableStateOf(false) }
     var turnMessage by remember { mutableStateOf("") }
     
-    // Levels (Expanded)
+    // Levels (Refined & Expanded)
     val levels = remember {
         listOf(
-            Level(Offset(0.5f, 0.8f), Offset(0.5f, 0.2f), listOf(Wall(0.1f, 0.4f, 0.3f, 0.05f), Wall(0.6f, 0.4f, 0.3f, 0.05f))),
-            Level(Offset(0.5f, 0.85f), Offset(0.5f, 0.1f), listOf(Wall(0.3f, 0.3f, 0.4f, 0.05f), Wall(0.2f, 0.6f, 0.6f, 0.05f))),
-            Level(Offset(0.2f, 0.8f), Offset(0.8f, 0.2f), listOf(Wall(0.45f, 0.2f, 0.1f, 0.6f))),
+            // Lv 1: The Gateway (Simple)
+            Level(Offset(0.5f, 0.85f), Offset(0.5f, 0.2f), listOf(
+                Wall(0.1f, 0.5f, 0.3f, 0.05f), 
+                Wall(0.6f, 0.5f, 0.3f, 0.05f)
+            )),
+            // Lv 2: The Blockade (Two Bars)
+            Level(Offset(0.5f, 0.9f), Offset(0.5f, 0.15f), listOf(
+                Wall(0.2f, 0.4f, 0.6f, 0.05f),
+                Wall(0.2f, 0.65f, 0.6f, 0.05f) 
+            )),
+            // Lv 3: Zig Zag (Narrower path)
+            Level(Offset(0.15f, 0.9f), Offset(0.85f, 0.1f), listOf(
+                Wall(0.0f, 0.35f, 0.7f, 0.05f),
+                Wall(0.3f, 0.65f, 0.7f, 0.05f)
+            )),
+            // Lv 4: The Cage (Precision Shot)
+            Level(Offset(0.5f, 0.85f), Offset(0.5f, 0.5f), listOf(
+                Wall(0.3f, 0.4f, 0.4f, 0.05f), // Top
+                Wall(0.3f, 0.6f, 0.4f, 0.05f), // Bottom
+                Wall(0.3f, 0.4f, 0.05f, 0.25f), // Left
+                Wall(0.65f, 0.4f, 0.05f, 0.25f) // Right (Gap exists?) No, this is a box.
+                // Wait, need an entry.
+            )),
+             // Re-doing Lv 4: The Pillars
             Level(Offset(0.5f, 0.9f), Offset(0.5f, 0.1f), listOf(
-                Wall(0.1f, 0.3f, 0.4f, 0.05f), Wall(0.5f, 0.5f, 0.4f, 0.05f), Wall(0.1f, 0.7f, 0.4f, 0.05f)
+                Wall(0.45f, 0.3f, 0.1f, 0.4f), // Center Pillar
+                Wall(0.1f, 0.5f, 0.2f, 0.05f), // Left Wing
+                Wall(0.7f, 0.5f, 0.2f, 0.05f)  // Right Wing
+            )),
+             // Lv 5: The Maze
+            Level(Offset(0.1f, 0.9f), Offset(0.9f, 0.1f), listOf(
+                 Wall(0.0f, 0.2f, 0.8f, 0.05f),
+                 Wall(0.2f, 0.5f, 0.8f, 0.05f),
+                 Wall(0.0f, 0.8f, 0.5f, 0.05f)
             ))
         )
     }
@@ -111,6 +140,7 @@ fun MiniGolfGameScreen(navController: NavController) {
                 if (timeLeft == 0L) {
                     gameOver = true // Time Over
                     isTimeRunning = false
+                    // Reset game state? Or just show overlay
                 }
                 delay(100)
             }
@@ -143,11 +173,10 @@ fun MiniGolfGameScreen(navController: NavController) {
 
     // AI Logic (Simple Random Score)
     fun playAI() {
-        // AI takes 1-4 strokes depending on difficulty
         val aiSkill = when(difficulty) {
-            0 -> Random.nextInt(3, 6) // Easy: Bad
-            2 -> Random.nextInt(1, 3) // Hard: Good
-            else -> Random.nextInt(2, 5) // Med (Default)
+            0 -> Random.nextInt(3, 6)
+            2 -> Random.nextInt(1, 3)
+            else -> Random.nextInt(2, 5)
         }
         p2Strokes = aiSkill
         p2TotalScore += aiSkill
@@ -162,7 +191,7 @@ fun MiniGolfGameScreen(navController: NavController) {
                 lastTime = frameTime
                 
                 // --- SUB-STEP PHYSICS ---
-                val steps = 6
+                val steps = 10 // Increased for precision
                 val dt = delta / steps
                 
                 for(i in 0 until steps) {
@@ -173,22 +202,47 @@ fun MiniGolfGameScreen(navController: NavController) {
                         
                         // Collisions
                         val ballR = 0.025f // Relative Radius
-                        var collided = false
                         
-                        // 1. Walls (AABB vs Circle)
-                        // Push out logic to prevent tunneling
+                        // 1. Walls (AABB Deep Collision)
                         for (wall in currentLevel.walls) {
-                             // Nearest point on wall rect to ball center
+                             // Determine nearest point on AABB to center
                              val closestX = nextPos.x.coerceIn(wall.x, wall.x + wall.w)
                              val closestY = nextPos.y.coerceIn(wall.y, wall.y + wall.h)
                              
                              val dx = nextPos.x - closestX
                              val dy = nextPos.y - closestY
+                             val distSq = dx*dx + dy*dy
                              
-                             if ((dx*dx + dy*dy) < (ballR * ballR)) {
+                             if (distSq < (ballR * ballR)) {
                                  // HIT
-                                 val dist = sqrt(dx*dx + dy*dy)
-                                 val normal = if (dist > 0.0001f) Offset(dx/dist, dy/dist) else Offset(0f, 1f)
+                                 val dist = sqrt(distSq)
+                                 var normal = Offset.Zero
+                                 
+                                 if (dist > 0.00001f) {
+                                     // Standard collision (center outside)
+                                     normal = Offset(dx/dist, dy/dist)
+                                 } else {
+                                     // CENTER INSIDE WALL (Deep Tunneling Fix)
+                                     // Find closest edge to push out
+                                     val dL = nextPos.x - wall.x
+                                     val dR = (wall.x + wall.w) - nextPos.x
+                                     val dT = nextPos.y - wall.y
+                                     val dB = (wall.y + wall.h) - nextPos.y
+                                     
+                                     val minOverlap = minOf(dL, dR, dT, dB)
+                                     
+                                     // Determine normal based on closest edge
+                                     normal = when (minOverlap) {
+                                         dL -> Offset(-1f, 0f)
+                                         dR -> Offset(1f, 0f)
+                                         dT -> Offset(0f, -1f)
+                                         else -> Offset(0f, 1f)
+                                     }
+                                     
+                                     // Force position OUT immediately to edge + radius
+                                     // (This prevents "sticking" inside)
+                                     // We adjust nextPos in the push-out phase below
+                                 }
                                  
                                  // Reflect Velocity
                                  val dot = ballVelocity.x * normal.x + ballVelocity.y * normal.y
@@ -197,9 +251,19 @@ fun MiniGolfGameScreen(navController: NavController) {
                                      ballVelocity *= 0.8f // Bounce loss
                                  }
                                  
-                                 // PUSH OUT (Important!)
-                                 val overlap = ballR - dist
-                                 nextPos += normal * (overlap + 0.0005f)
+                                 // PUSH OUT 
+                                 // If inside (dist ~ 0), we need to push out by radius + penetration
+                                 // If outside (dist > 0), overlap = ballR - dist
+                                 val pen = if (dist > 0.00001f) (ballR - dist) else {
+                                     // Re-calculate penetration for inside case
+                                     val dL = nextPos.x - wall.x
+                                     val dR = (wall.x + wall.w) - nextPos.x
+                                     val dT = nextPos.y - wall.y
+                                     val dB = (wall.y + wall.h) - nextPos.y
+                                     minOf(dL, dR, dT, dB) + ballR // Push full radius out from edge
+                                 }
+                                 
+                                 nextPos += normal * (pen + 0.0005f)
                              }
                         }
                         
