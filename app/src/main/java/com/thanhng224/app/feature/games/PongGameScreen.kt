@@ -360,6 +360,9 @@ fun PongGameLoop(
             val h = size.height
             val pW = PADDLE_WIDTH_DP.dp.toPx()
             val pH = PADDLE_HEIGHT_DP.dp.toPx()
+            
+            // Fixed corner radius for "more rectangular" look (less than pH/2)
+            val cornerRad = 16f 
 
             // Draw Background Stars
             drawCircle(Color.White, radius = 2f, center = Offset(w*0.2f, h*0.2f))
@@ -385,7 +388,7 @@ fun PongGameLoop(
             if (katBitmap != null) {
                 // Draw Bitmap clipped
                 drawIntoCanvas { canvas ->
-                   val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(topRect, CornerRadius(pH/2))) }
+                   val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(topRect, CornerRadius(cornerRad))) }
                    canvas.save()
                    canvas.clipPath(path)
                    canvas.nativeCanvas.drawBitmap(
@@ -397,10 +400,10 @@ fun PongGameLoop(
                    canvas.restore()
                 }
             } else {
-                drawRoundRect(Color(0xFFE91E63), topLeft = topRect.topLeft, size = topRect.size, cornerRadius = CornerRadius(pH/2))
+                drawRoundRect(Color(0xFFE91E63), topLeft = topRect.topLeft, size = topRect.size, cornerRadius = CornerRadius(cornerRad))
             }
             // Glow Border
-            drawRoundRect(Color.White, topLeft = topRect.topLeft, size = topRect.size, cornerRadius = CornerRadius(pH/2), style = Stroke(width = 2f))
+            drawRoundRect(Color.White, topLeft = topRect.topLeft, size = topRect.size, cornerRadius = CornerRadius(cornerRad), style = Stroke(width = 2f))
 
             // BOTTOM PADDLE (Agus)
             val botRect = androidx.compose.ui.geometry.Rect(
@@ -409,7 +412,7 @@ fun PongGameLoop(
             )
              if (agusBitmap != null) {
                 drawIntoCanvas { canvas ->
-                   val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(botRect, CornerRadius(pH/2))) }
+                   val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(botRect, CornerRadius(cornerRad))) }
                    canvas.save()
                    canvas.clipPath(path)
                    canvas.nativeCanvas.drawBitmap(
@@ -421,9 +424,9 @@ fun PongGameLoop(
                    canvas.restore()
                 }
             } else {
-                drawRoundRect(Color(0xFF2196F3), topLeft = botRect.topLeft, size = botRect.size, cornerRadius = CornerRadius(pH/2))
+                drawRoundRect(Color(0xFF2196F3), topLeft = botRect.topLeft, size = botRect.size, cornerRadius = CornerRadius(cornerRad))
             }
-             drawRoundRect(Color.White, topLeft = botRect.topLeft, size = botRect.size, cornerRadius = CornerRadius(pH/2), style = Stroke(width = 2f))
+             drawRoundRect(Color.White, topLeft = botRect.topLeft, size = botRect.size, cornerRadius = CornerRadius(cornerRad), style = Stroke(width = 2f))
 
             // BALL
             drawCircle(Color.Yellow, radius = BALL_RADIUS_DP.dp.toPx(), center = ballPos)
