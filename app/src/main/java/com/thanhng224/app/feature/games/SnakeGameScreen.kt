@@ -245,12 +245,19 @@ private fun SnakeBoard(
                     
                     if (bitmap != null) {
                             drawIntoCanvas { canvas ->
-                                // "Agrandar hacia los costados" (Widen to sides)
-                                // If UP/DOWN, widen X. If LEFT/RIGHT, widen Y.
+                                // "Agrandar aun mas, el doble" (Double it)
+                                // Standard Scale: Width 4.5x, Length 3.5x
                                 val isVertical = currentDirection == Direction.UP || currentDirection == Direction.DOWN
                                 
-                                val scaleW = if (isVertical) 2.8f else 2.2f
-                                val scaleH = if (isVertical) 2.2f else 2.8f
+                                // Compensation for "shrinking when mouth open" (Asset issue?)
+                                // If mouth is open, we boost the scale by 15%
+                                val boost = if (isMouthOpen) 1.15f else 1.0f
+                                
+                                val baseW = if (isVertical) 4.5f else 3.5f
+                                val baseH = if (isVertical) 3.5f else 4.5f
+                                
+                                val scaleW = baseW * boost
+                                val scaleH = baseH * boost
                                 
                                 val w = cellPx * scaleW
                                 val h = cellPx * scaleH
@@ -265,7 +272,7 @@ private fun SnakeBoard(
                                     bottom = topLeft.y - offY + h
                                 )
                                 
-                                // Draw oval shape (fatter)
+                                // Draw oval shape (Huge)
                                 val path = androidx.compose.ui.graphics.Path().apply { addOval(rect) }
                                 canvas.save()
                                 canvas.clipPath(path)
