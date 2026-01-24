@@ -250,7 +250,7 @@ private fun SnakeBoard(
                                 
                                 val boost = if (isMouthOpen) 1.15f else 1.0f
                                 
-                                val boost = if (isMouthOpen) 1.15f else 1.0f
+
                                 
                                 // Clean reset for new images
                                 // Uniform scale for all directions since assets are now consistent
