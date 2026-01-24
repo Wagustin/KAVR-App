@@ -105,14 +105,7 @@ fun MiniGolfGameScreen(navController: NavController) {
                 Wall(0.0f, 0.35f, 0.7f, 0.05f),
                 Wall(0.3f, 0.65f, 0.7f, 0.05f)
             )),
-            // Lv 4: The Cage (Precision Shot)
-            Level(Offset(0.5f, 0.85f), Offset(0.5f, 0.5f), listOf(
-                Wall(0.3f, 0.4f, 0.4f, 0.05f), // Top
-                Wall(0.3f, 0.6f, 0.4f, 0.05f), // Bottom
-                Wall(0.3f, 0.4f, 0.05f, 0.25f), // Left
-                Wall(0.65f, 0.4f, 0.05f, 0.25f) // Right (Gap exists?) No, this is a box.
-                // Wait, need an entry.
-            )),
+
              // Re-doing Lv 4: The Pillars
             Level(Offset(0.5f, 0.9f), Offset(0.5f, 0.1f), listOf(
                 Wall(0.45f, 0.3f, 0.1f, 0.4f), // Center Pillar

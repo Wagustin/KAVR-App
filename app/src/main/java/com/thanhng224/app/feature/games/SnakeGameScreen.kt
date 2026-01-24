@@ -245,8 +245,8 @@ private fun SnakeBoard(
                     
                     if (bitmap != null) {
                         drawIntoCanvas { canvas ->
-                            // Scale head up by 1.6x to look bigger
-                            val scaleFactor = 1.6f
+                            // Scale head up by 2.2x to look bigger
+                            val scaleFactor = 2.2f
                             val scaledSize = cellPx * scaleFactor
                             val offset = (scaledSize - cellPx) / 2
                             
