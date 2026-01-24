@@ -123,7 +123,7 @@ fun SnakeGameScreen(
             onStartGame = { viewModel.startGame() }
         )
     }
-}
+
 
 // --- POPUP FINAL (Game Over / Win) ---
     if (gameState == GameState.GAMEOVER || gameState == GameState.WON) {
