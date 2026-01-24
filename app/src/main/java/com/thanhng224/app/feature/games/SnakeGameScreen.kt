@@ -1,5 +1,7 @@
 package com.thanhng224.app.feature.games
 
+import androidx.compose.ui.graphics.graphicsLayer
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -55,6 +57,26 @@ fun SnakeGameScreen(
     val score by viewModel.score.collectAsState()
     val highScore by viewModel.highScore.collectAsState(initial = 0)
 
+    // Animations
+    val eatingAnim = remember { androidx.compose.animation.core.Animatable(1f) }
+    androidx.compose.runtime.LaunchedEffect(score) {
+        if (score > 0) {
+            eatingAnim.snapTo(1.3f)
+            eatingAnim.animateTo(1f)
+        }
+    }
+
+    // High Score Logic
+    val isNewRecord = score > highScore && score > 0
+    val highScoreScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isNewRecord) 1.3f else 1f,
+        label = "scale"
+    )
+    val highScoreColor by androidx.compose.animation.animateColorAsState(
+         targetValue = if (isNewRecord) Color(0xFFFFD700) else MaterialTheme.colorScheme.primary,
+         label = "color"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,7 +89,8 @@ fun SnakeGameScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Score: $score",
@@ -76,10 +99,14 @@ fun SnakeGameScreen(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "High Score: $highScore",
+                text = if (isNewRecord) "NEW RECORD: $score" else "High Score: $highScore",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = highScoreColor,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = highScoreScale
+                    scaleY = highScoreScale
+                }
             )
         }
 
@@ -91,18 +118,20 @@ fun SnakeGameScreen(
             foodEmoji = viewModel.foodEmoji.collectAsState().value,
             currentDirection = viewModel.getCurrentDirection(),
             isHealthyMode = viewModel.isHealthyMode.collectAsState().value,
+            eatingScale = eatingAnim.value, // Pass animation value
             onDirectionChange = { viewModel.changeDirection(it) },
             onStartGame = { viewModel.startGame() }
         )
     }
+}
 
-    // --- POPUP FINAL (Game Over / Win) ---
+// --- POPUP FINAL (Game Over / Win) ---
     if (gameState == GameState.GAMEOVER || gameState == GameState.WON) {
         FinalScoreDialog(
             gameState = gameState,
             finalScore = score,
             onRestart = { viewModel.startGame() },
-            onExit = { navController.popBackStack() } // Usa el NavController
+            onExit = { navController.popBackStack() } 
         )
     }
 }
@@ -115,6 +144,7 @@ private fun SnakeBoard(
     foodEmoji: String,
     currentDirection: Direction,
     isHealthyMode: Boolean,
+    eatingScale: Float, // Receive animation
     onDirectionChange: (Direction) -> Unit,
     onStartGame: () -> Unit
 ) {
@@ -153,9 +183,9 @@ private fun SnakeBoard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .padding(16.dp)
-            .clip(RoundedCornerShape(16.dp)) // Rounded board
-            .background(Color(0xFF81C784)) // Base grass color
+            .padding(4.dp) // Reduced padding (Was 16.dp)
+            .clip(RoundedCornerShape(16.dp)) 
+            .background(Color(0xFF81C784)) 
             .pointerInput(gameState) {
                 if (gameState == GameState.PLAYING) {
                     detectDragGestures { change, dragAmount ->
@@ -256,8 +286,11 @@ private fun SnakeBoard(
                                 // Uniform scale for all directions since assets are now consistent
                                 val baseScale = 3.2f 
                                 
-                                val scaleW = baseScale * boost
-                                val scaleH = baseScale * boost
+                                // Multiply by eating animation (pulse)
+                                val finalScale = baseScale * boost * eatingScale
+                                
+                                val scaleW = finalScale
+                                val scaleH = finalScale
                                 
                                 val w = cellPx * scaleW
                                 val h = cellPx * scaleH
