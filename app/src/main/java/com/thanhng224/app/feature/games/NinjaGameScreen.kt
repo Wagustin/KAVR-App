@@ -1,5 +1,6 @@
 package com.thanhng224.app.feature.games
 
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -146,8 +147,6 @@ fun NinjaGameScreen(navController: NavController) {
                         } else { // Top Player (Only in Mode 0)
                              k.distance += THROW_SPEED // FIX: Was -= (bug)
                              // dist starts negative (-800), moves to 0. 
-                             // Wait, distance checks:
-                             // Start: -800. 
                              // Frame 1: -800 + 30 = -770. Correct. Approaching 0.
                              
                              if (k.distance >= -TARGET_RADIUS_DP * 3) {
@@ -254,6 +253,20 @@ fun NinjaGameScreen(navController: NavController) {
                 }
             } else {
                 // SURVIVAL 1P
+                // Track High Score locally for this session (since no ViewModel yet)
+                 var localHighScore by remember { mutableStateOf(0) } // Simplified persistence
+                 
+                 // Animation State for Score
+                 val isNewRecord = scores.second > localHighScore && scores.second > 0
+                 val scoreScale by androidx.compose.animation.core.animateFloatAsState(
+                     targetValue = if (isNewRecord) 1.2f else 1f,
+                     label = "scale"
+                 )
+                 val scoreColor by androidx.compose.animation.animateColorAsState(
+                     targetValue = if (isNewRecord) Color(0xFFFFD700) else Color.White.copy(alpha=0.5f),
+                     label = "color"
+                 )
+
                  Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -263,19 +276,36 @@ fun NinjaGameScreen(navController: NavController) {
                             } else {
                                 // Reset
                                 knives.clear()
-                                scores = 0 to 0
+                                // Update High Score if needed (should be done on game over technically, 
+                                // but we update live for "New Record" effect)
+                                if (scores.second > localHighScore) localHighScore = scores.second
+                                
+                                scores = localHighScore to 0
                                 rotationSpeed = baseSpeed
                                 gameOver = false
                             }
                         }
                 ) {
-                     Text("${scores.second}", fontSize = 100.sp, color = Color.White.copy(alpha=0.5f), modifier = Modifier.align(Alignment.Center).padding(bottom=200.dp), fontWeight = FontWeight.Bold)
+                     Text(
+                         text = if (isNewRecord) "NEW RECORD: ${scores.second}" else "${scores.second}",
+                         fontSize = if (isNewRecord) 50.sp else 100.sp, 
+                         color = scoreColor, 
+                         modifier = Modifier
+                             .align(Alignment.Center)
+                             .padding(bottom = 200.dp)
+                             .graphicsLayer {
+                                 scaleX = scoreScale
+                                 scaleY = scoreScale
+                             }, 
+                         fontWeight = FontWeight.Bold
+                     )
                      
                      if (gameOver) {
                          Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.6f)), contentAlignment = Alignment.Center) {
                              Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                  Text("GAME OVER", fontSize = 50.sp, color = Color.Red, fontWeight = FontWeight.Bold)
                                  Text("Score: ${scores.second}", fontSize = 30.sp, color = Color.White)
+                                 Text("High Score: $localHighScore", fontSize = 20.sp, color = Color.Yellow)
                                  Text("Tap to Retry", fontSize = 20.sp, color = Color.Gray)
                              }
                          }

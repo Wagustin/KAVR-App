@@ -217,22 +217,25 @@ private fun SnakeBoard(
             val cellSize = size.width / GRID_SIZE
             val cellPx = size.width / GRID_SIZE
             
-            // Text Paint for Emojis
+            // OPTIMIZATION: Cache Colors
+            val darkGrass = Color(0xFF66BB6A)
+            val lightGrass = Color(0xFF81C784)
+            val healthyGrass = Color.Yellow.copy(alpha=0.2f)
+            
+            // Text Paint for Emojis (Cached via remember not possible easily in Canvas scope without wrapping, 
+            // but we can minimize allocs by reusing a single Paint if we lifted it out. 
+            // For now, let's keep it simple but cleaner.)
             val textPaint = android.graphics.Paint().apply {
                 textSize = cellPx * 0.8f
                 textAlign = android.graphics.Paint.Align.CENTER
             }
-
-            // 1. CHECKERBOARD BACKGROUND
-            val darkGrass = Color(0xFF66BB6A)
-            val lightGrass = Color(0xFF81C784)
-            val goldenGrass = Color(0xFFFFEB3B).copy(alpha=0.3f)
             
+            // 1. CHECKERBOARD BACKGROUND
             for (i in 0 until GRID_SIZE) {
                 for (j in 0 until GRID_SIZE) {
                     val isEven = (i + j) % 2 == 0
-                    var color = if (isEven) lightGrass else darkGrass
-                    if (isHealthyMode && isEven) color = androidx.compose.ui.graphics.Color.Yellow.copy(alpha=0.2f)
+                    val baseColor = if (isEven) lightGrass else darkGrass
+                    val color = if (isHealthyMode && isEven) healthyGrass else baseColor
                     
                     drawRect(
                         color = color,

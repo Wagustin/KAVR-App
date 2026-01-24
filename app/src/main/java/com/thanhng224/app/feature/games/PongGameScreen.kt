@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Paint
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -110,6 +111,28 @@ fun PongGameScreen(navController: NavController) {
             )
             
             // Score Overlay
+            val bottomScore = scores.second
+            
+            // High Score Logic (1P Mode)
+            // Track High Score locally for 1P
+             var localHighScore by remember { mutableStateOf(0) }
+             
+             LaunchedEffect(bottomScore) {
+                 if (mode == 1 && bottomScore > localHighScore) {
+                     localHighScore = bottomScore
+                 }
+             }
+
+             val isNewRecord = mode == 1 && bottomScore == localHighScore && bottomScore > 0
+             val scoreScale by androidx.compose.animation.core.animateFloatAsState(
+                 targetValue = if (isNewRecord) 1.2f else 1f,
+                 label = "scale"
+             )
+             val scoreColor by androidx.compose.animation.animateColorAsState(
+                 targetValue = if (isNewRecord) Color(0xFFFFD700) else Color(0xFF2196F3).copy(alpha = 0.5f),
+                 label = "color"
+             )
+
             Text(
                 text = "${scores.first}",
                 color = Color(0xFFE91E63).copy(alpha = 0.5f), // Kat Score (Top)
@@ -121,12 +144,16 @@ fun PongGameScreen(navController: NavController) {
             )
              Text(
                 text = "${scores.second}",
-                color = Color(0xFF2196F3).copy(alpha = 0.5f), // Agus Score (Bottom)
+                color = scoreColor, // Agus Score (Bottom)
                 fontSize = 80.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 100.dp)
+                    .graphicsLayer {
+                        scaleX = scoreScale
+                        scaleY = scoreScale
+                    }
             )
         }
     }
