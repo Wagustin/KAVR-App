@@ -245,17 +245,16 @@ private fun SnakeBoard(
                     
                     if (bitmap != null) {
                             drawIntoCanvas { canvas ->
-                                // "Bajale al tamaño de las demas" (Lower others)
-                                // "Heads down ponla mas grande" (Make down bigger)
+                                // "No hagas con un circulo" (No circle clip)
+                                // "Se ven muy grande" (Too big) -> Reduce scales
                                 
                                 val boost = if (isMouthOpen) 1.15f else 1.0f
                                 
-                                // Direction-specific scaling (Refined based on user feedback)
                                 val (baseW, baseH) = when(currentDirection) {
-                                    Direction.DOWN -> 5.5f to 5.5f // Even bigger!
-                                    Direction.RIGHT -> 4.4f to 4.4f // Increased (was 2.8)
-                                    Direction.UP -> 2.8f to 2.8f   // Kept same
-                                    Direction.LEFT -> 2.8f to 2.8f // Kept same
+                                    Direction.DOWN -> 4.0f to 4.0f // Reduced from 5.5
+                                    Direction.RIGHT -> 3.5f to 3.5f // Reduced from 4.4
+                                    Direction.UP -> 2.8f to 2.8f
+                                    Direction.LEFT -> 2.8f to 2.8f
                                 }
                                 
                                 val scaleW = baseW * boost
@@ -274,18 +273,13 @@ private fun SnakeBoard(
                                     bottom = topLeft.y - offY + h
                                 )
                                 
-                                // Draw oval shape (Huge)
-                                val path = androidx.compose.ui.graphics.Path().apply { addOval(rect) }
-                                canvas.save()
-                                canvas.clipPath(path)
-                                
+                                // Draw Bitmap DIRECTLY (No Circle Clip)
                                 canvas.nativeCanvas.drawBitmap(
                                     bitmap, 
                                     null, 
                                     android.graphics.Rect(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt()), 
                                     null
                                 )
-                                canvas.restore()
                             }
                     } else {
                         // FALLBACK HEAD
