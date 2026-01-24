@@ -244,34 +244,40 @@ private fun SnakeBoard(
                     } ?: headDown // Fallback to headDown or whatever available? Or shape
                     
                     if (bitmap != null) {
-                        drawIntoCanvas { canvas ->
-                            // Scale head up by 2.2x to look bigger
-                            val scaleFactor = 2.2f
-                            val scaledSize = cellPx * scaleFactor
-                            val offset = (scaledSize - cellPx) / 2
-                            
-                            val rect = androidx.compose.ui.geometry.Rect(
-                                left = topLeft.x - offset,
-                                top = topLeft.y - offset,
-                                right = topLeft.x - offset + scaledSize,
-                                bottom = topLeft.y - offset + scaledSize
-                            )
-                            
-                            // Clip to circle (optional, but keeps it round if image is square)
-                            // or just draw the bitmap directly if it's already a transparent PNG
-                            // Let's keep a soft clip or no clip if we want the full "head" shape
-                             val path = androidx.compose.ui.graphics.Path().apply { addOval(rect) }
-                             canvas.save()
-                             canvas.clipPath(path)
-                             
-                            canvas.nativeCanvas.drawBitmap(
-                                bitmap, 
-                                null, 
-                                android.graphics.Rect(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt()), 
-                                null
-                            )
-                            canvas.restore()
-                        }
+                            drawIntoCanvas { canvas ->
+                                // "Agrandar hacia los costados" (Widen to sides)
+                                // If UP/DOWN, widen X. If LEFT/RIGHT, widen Y.
+                                val isVertical = currentDirection == Direction.UP || currentDirection == Direction.DOWN
+                                
+                                val scaleW = if (isVertical) 2.8f else 2.2f
+                                val scaleH = if (isVertical) 2.2f else 2.8f
+                                
+                                val w = cellPx * scaleW
+                                val h = cellPx * scaleH
+                                
+                                val offX = (w - cellPx) / 2
+                                val offY = (h - cellPx) / 2
+                                
+                                val rect = androidx.compose.ui.geometry.Rect(
+                                    left = topLeft.x - offX,
+                                    top = topLeft.y - offY,
+                                    right = topLeft.x - offX + w,
+                                    bottom = topLeft.y - offY + h
+                                )
+                                
+                                // Draw oval shape (fatter)
+                                val path = androidx.compose.ui.graphics.Path().apply { addOval(rect) }
+                                canvas.save()
+                                canvas.clipPath(path)
+                                
+                                canvas.nativeCanvas.drawBitmap(
+                                    bitmap, 
+                                    null, 
+                                    android.graphics.Rect(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt()), 
+                                    null
+                                )
+                                canvas.restore()
+                            }
                     } else {
                         // FALLBACK HEAD
                         drawRoundRect(
