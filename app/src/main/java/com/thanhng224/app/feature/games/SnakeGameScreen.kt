@@ -245,16 +245,17 @@ private fun SnakeBoard(
                     
                     if (bitmap != null) {
                             drawIntoCanvas { canvas ->
-                                // "Agrandar aun mas, el doble" (Double it)
-                                // Standard Scale: Width 4.5x, Length 3.5x
-                                val isVertical = currentDirection == Direction.UP || currentDirection == Direction.DOWN
+                                // "Bajale al tamaño de las demas" (Lower others)
+                                // "Heads down ponla mas grande" (Make down bigger)
                                 
-                                // Compensation for "shrinking when mouth open" (Asset issue?)
-                                // If mouth is open, we boost the scale by 15%
                                 val boost = if (isMouthOpen) 1.15f else 1.0f
                                 
-                                val baseW = if (isVertical) 4.5f else 3.5f
-                                val baseH = if (isVertical) 3.5f else 4.5f
+                                // Direction-specific scaling
+                                val (baseW, baseH) = when(currentDirection) {
+                                    Direction.DOWN -> 4.5f to 4.5f // Special case: HUGE
+                                    Direction.UP -> 2.8f to 2.8f   // Standard
+                                    Direction.LEFT, Direction.RIGHT -> 2.8f to 2.8f // Standard
+                                }
                                 
                                 val scaleW = baseW * boost
                                 val scaleH = baseH * boost
