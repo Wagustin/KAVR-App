@@ -250,15 +250,14 @@ private fun SnakeBoard(
                                 
                                 val boost = if (isMouthOpen) 1.15f else 1.0f
                                 
-                                val (baseW, baseH) = when(currentDirection) {
-                                    Direction.DOWN -> 4.0f to 4.0f // Reduced from 5.5
-                                    Direction.RIGHT -> 3.5f to 3.5f // Reduced from 4.4
-                                    Direction.UP -> 2.8f to 2.8f
-                                    Direction.LEFT -> 2.8f to 2.8f
-                                }
+                                val boost = if (isMouthOpen) 1.15f else 1.0f
                                 
-                                val scaleW = baseW * boost
-                                val scaleH = baseH * boost
+                                // Clean reset for new images
+                                // Uniform scale for all directions since assets are now consistent
+                                val baseScale = 3.2f 
+                                
+                                val scaleW = baseScale * boost
+                                val scaleH = baseScale * boost
                                 
                                 val w = cellPx * scaleW
                                 val h = cellPx * scaleH
