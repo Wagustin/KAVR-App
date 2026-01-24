@@ -52,7 +52,7 @@ import kotlin.random.Random
 const val PADDLE_WIDTH_DP = 120f
 const val PADDLE_HEIGHT_DP = 45f
 const val BALL_RADIUS_DP = 10f
-const val INITIAL_SPEED = 10f
+const val INITIAL_SPEED = 12.5f // Increased 25% from 10f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,23 +115,28 @@ fun PongGameScreen(navController: NavController) {
             
             // High Score Logic (1P Mode)
             // Track High Score locally for 1P
+            // High Score Logic (1P Mode)
+            // Track High Score locally for 1P
              var localHighScore by remember { mutableStateOf(0) }
+             val reactionAnim = remember { androidx.compose.animation.core.Animatable(0f) }
              
              LaunchedEffect(bottomScore) {
                  if (mode == 1 && bottomScore > localHighScore) {
                      localHighScore = bottomScore
+                     // Trigger Reaction (Pulse)
+                     if (bottomScore > 0) {
+                        reactionAnim.snapTo(1f)
+                        reactionAnim.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(700)) 
+                     }
                  }
              }
 
-             val isNewRecord = mode == 1 && bottomScore == localHighScore && bottomScore > 0
-             val scoreScale by androidx.compose.animation.core.animateFloatAsState(
-                 targetValue = if (isNewRecord) 1.2f else 1f,
-                 label = "scale"
-             )
-             val scoreColor by androidx.compose.animation.animateColorAsState(
-                 targetValue = if (isNewRecord) Color(0xFFFFD700) else Color(0xFF2196F3).copy(alpha = 0.5f),
-                 label = "color"
-             )
+             // Interpolate values based on reaction pulse (0f -> 1f -> 0f is manual, but here we snap 1 -> 0)
+             // So 1.0 means Full Gold/Big. 0.0 means Normal.
+             val currentScale = 1f + (reactionAnim.value * 0.5f) // Max 1.5x
+             val normalColor = Color(0xFF2196F3).copy(alpha = 0.5f)
+             val goldColor = Color(0xFFFFD700)
+             val currentColor = androidx.compose.ui.graphics.lerp(normalColor, goldColor, reactionAnim.value)
 
             Text(
                 text = "${scores.first}",
@@ -144,15 +149,15 @@ fun PongGameScreen(navController: NavController) {
             )
              Text(
                 text = "${scores.second}",
-                color = scoreColor, // Agus Score (Bottom)
+                color = currentColor, // Animated Color
                 fontSize = 80.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 100.dp)
                     .graphicsLayer {
-                        scaleX = scoreScale
-                        scaleY = scoreScale
+                        scaleX = currentScale
+                        scaleY = currentScale
                     }
             )
         }

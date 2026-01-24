@@ -253,19 +253,27 @@ fun NinjaGameScreen(navController: NavController) {
                 }
             } else {
                 // SURVIVAL 1P
-                // Track High Score locally for this session (since no ViewModel yet)
+                 // Track High Score locally for this session (since no ViewModel yet)
                  var localHighScore by remember { mutableStateOf(0) } // Simplified persistence
                  
-                 // Animation State for Score
-                 val isNewRecord = scores.second > localHighScore && scores.second > 0
-                 val scoreScale by androidx.compose.animation.core.animateFloatAsState(
-                     targetValue = if (isNewRecord) 1.2f else 1f,
-                     label = "scale"
-                 )
-                 val scoreColor by androidx.compose.animation.animateColorAsState(
-                     targetValue = if (isNewRecord) Color(0xFFFFD700) else Color.White.copy(alpha=0.5f),
-                     label = "color"
-                 )
+                 // Animation State for Score (Transient Pulse)
+                 val reactionAnim = remember { androidx.compose.animation.core.Animatable(0f) }
+                 
+                 LaunchedEffect(scores.second) {
+                     if (scores.second > localHighScore) {
+                         localHighScore = scores.second
+                         // Trigger Pulse
+                         if (scores.second > 0) {
+                             reactionAnim.snapTo(1f)
+                             reactionAnim.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(700))
+                         }
+                     }
+                 }
+                 
+                 val currentScale = 1f + (reactionAnim.value * 0.5f) // Max 1.5x
+                 val normalColor = Color.White.copy(alpha=0.5f)
+                 val goldColor = Color(0xFFFFD700)
+                 val currentColor = androidx.compose.ui.graphics.lerp(normalColor, goldColor, reactionAnim.value)
 
                  Box(
                     modifier = Modifier
@@ -276,10 +284,6 @@ fun NinjaGameScreen(navController: NavController) {
                             } else {
                                 // Reset
                                 knives.clear()
-                                // Update High Score if needed (should be done on game over technically, 
-                                // but we update live for "New Record" effect)
-                                if (scores.second > localHighScore) localHighScore = scores.second
-                                
                                 scores = localHighScore to 0
                                 rotationSpeed = baseSpeed
                                 gameOver = false
@@ -287,15 +291,15 @@ fun NinjaGameScreen(navController: NavController) {
                         }
                 ) {
                      Text(
-                         text = if (isNewRecord) "NEW RECORD: ${scores.second}" else "${scores.second}",
-                         fontSize = if (isNewRecord) 50.sp else 100.sp, 
-                         color = scoreColor, 
+                         text = "${scores.second}",
+                         fontSize = 100.sp, 
+                         color = currentColor, 
                          modifier = Modifier
                              .align(Alignment.Center)
                              .padding(bottom = 200.dp)
                              .graphicsLayer {
-                                 scaleX = scoreScale
-                                 scaleY = scoreScale
+                                 scaleX = currentScale
+                                 scaleY = currentScale
                              }, 
                          fontWeight = FontWeight.Bold
                      )

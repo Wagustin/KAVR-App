@@ -1,4 +1,4 @@
-package com.thanhng224.app.feature.games
+
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -140,8 +140,8 @@ class SnakeViewModel @Inject constructor(
         }
 
         // Colisión Paredes o Cuerpo
-        if (newHead.first !in 0 until GRID_SIZE || 
-            newHead.second !in 0 until GRID_SIZE || 
+        if (newHead.first !in 0 until GRID_COLS || 
+            newHead.second !in 0 until GRID_ROWS || 
             _snakeBody.value.contains(newHead)) {
             endGame()
             return
@@ -175,7 +175,7 @@ class SnakeViewModel @Inject constructor(
     private fun generateFood() {
         var newFood: Point
         do {
-            newFood = Point(Random.nextInt(GRID_SIZE), Random.nextInt(GRID_SIZE))
+            newFood = Point(Random.nextInt(GRID_COLS), Random.nextInt(GRID_ROWS))
         } while (_snakeBody.value.contains(newFood))
         _food.value = newFood
         

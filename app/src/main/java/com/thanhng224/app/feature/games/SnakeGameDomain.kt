@@ -11,5 +11,7 @@ enum class GameState { IDLE, PLAYING, WON, GAMEOVER }
 /** Representa las direcciones de movimiento de la serpiente. */
 enum class Direction { UP, DOWN, LEFT, RIGHT }
 
-/** El tamaño del tablero (20x20). Ahora es público para que la UI pueda usarlo. */
-const val GRID_SIZE = 20
+/** El tamaño del tablero (ahora rectangular para mejor visibilidad). */
+const val GRID_COLS = 15 // Menos columnas = Celdas mas grandes
+const val GRID_ROWS = 25 // Mas filas = Tablero vertical
+// const val GRID_SIZE = 20 // DEPRECATED

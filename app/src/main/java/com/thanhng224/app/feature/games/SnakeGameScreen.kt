@@ -182,8 +182,8 @@ private fun SnakeBoard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f)
-            .padding(4.dp) // Reduced padding (Was 16.dp)
+            .aspectRatio(GRID_COLS.toFloat() / GRID_ROWS.toFloat()) // Vertical Aspect Ratio
+            .padding(4.dp) 
             .clip(RoundedCornerShape(16.dp)) 
             .background(Color(0xFF81C784)) 
             .pointerInput(gameState) {
@@ -214,25 +214,22 @@ private fun SnakeBoard(
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val cellSize = size.width / GRID_SIZE
-            val cellPx = size.width / GRID_SIZE
+            val cellSize = size.width / GRID_COLS
+            val cellPx = size.width / GRID_COLS
             
             // OPTIMIZATION: Cache Colors
             val darkGrass = Color(0xFF66BB6A)
             val lightGrass = Color(0xFF81C784)
             val healthyGrass = Color.Yellow.copy(alpha=0.2f)
             
-            // Text Paint for Emojis (Cached via remember not possible easily in Canvas scope without wrapping, 
-            // but we can minimize allocs by reusing a single Paint if we lifted it out. 
-            // For now, let's keep it simple but cleaner.)
             val textPaint = android.graphics.Paint().apply {
                 textSize = cellPx * 0.8f
                 textAlign = android.graphics.Paint.Align.CENTER
             }
             
             // 1. CHECKERBOARD BACKGROUND
-            for (i in 0 until GRID_SIZE) {
-                for (j in 0 until GRID_SIZE) {
+            for (i in 0 until GRID_COLS) {
+                for (j in 0 until GRID_ROWS) {
                     val isEven = (i + j) % 2 == 0
                     val baseColor = if (isEven) lightGrass else darkGrass
                     val color = if (isHealthyMode && isEven) healthyGrass else baseColor
