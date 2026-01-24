@@ -250,11 +250,12 @@ private fun SnakeBoard(
                                 
                                 val boost = if (isMouthOpen) 1.15f else 1.0f
                                 
-                                // Direction-specific scaling
+                                // Direction-specific scaling (Refined based on user feedback)
                                 val (baseW, baseH) = when(currentDirection) {
-                                    Direction.DOWN -> 4.5f to 4.5f // Special case: HUGE
-                                    Direction.UP -> 2.8f to 2.8f   // Standard
-                                    Direction.LEFT, Direction.RIGHT -> 2.8f to 2.8f // Standard
+                                    Direction.DOWN -> 5.5f to 5.5f // Even bigger!
+                                    Direction.RIGHT -> 4.4f to 4.4f // Increased (was 2.8)
+                                    Direction.UP -> 2.8f to 2.8f   // Kept same
+                                    Direction.LEFT -> 2.8f to 2.8f // Kept same
                                 }
                                 
                                 val scaleW = baseW * boost
