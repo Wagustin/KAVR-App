@@ -64,20 +64,59 @@ fun PongGameScreen(navController: NavController) {
     // --- STATE ---
     var scores by remember { mutableStateOf(0 to 0) } // P1 vs P2
     
-    // Side Selection (Only relevant for 1P)
-    // false = Standard (User Bottom/Right, AI Top/Left)
-    // true = Swapped (User Top/Left, AI Bottom/Right)
+    // Side Selection
     var isSwapped by remember { mutableStateOf(false) }
+    var showSideDialog by remember { mutableStateOf(mode == 1) } // Show dialog only in 1P mode
 
     // Bitmaps
     var agusBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var katBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    // FORCE LANDSCAPE ORIENTATION
+    DisposableEffect(Unit) {
+        val activity = context.findActivity()
+        val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        
+        // Force Landscape
+        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        
+        onDispose {
+            // Restore (Force Portrait as requested for rest of app)
+            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             agusBitmap = loadBitmapFromDrawable(context, "b_agus")
             katBitmap = loadBitmapFromDrawable(context, "b_kat")
         }
+    }
+    
+    // Side Selection Dialog
+    if (showSideDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { /* No dismiss, must choose */ },
+            title = { Text("Elige tu Lado", color = Color.Black) },
+            text = { Text("¿En qué lado quieres jugar?", color = Color.Gray) },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = { 
+                    isSwapped = false // Right Side (Default)
+                    showSideDialog = false
+                }) {
+                    Text("Derecha")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.Button(onClick = { 
+                    isSwapped = true // Left Side
+                    showSideDialog = false
+                }) {
+                    Text("Izquierda")
+                }
+            },
+            containerColor = Color.White
+        )
     }
 
     Scaffold(
@@ -93,9 +132,8 @@ fun PongGameScreen(navController: NavController) {
                     }
                 },
                 actions = {
-                    // Swap Sides Button (1P Only)
                     if (mode == 1) {
-                         IconButton(onClick = { isSwapped = !isSwapped }) {
+                         IconButton(onClick = { showSideDialog = true }) { // Re-open dialog
                             Icon(Icons.Default.SwapHoriz, contentDescription = "Cambiar Lado", tint = Color.White)
                         }
                     }
@@ -484,4 +522,14 @@ fun PongGameLoop(
             drawCircle(Color.Yellow, radius = BALL_RADIUS_DP.dp.toPx(), center = ballPos)
         }
     }
+}
+
+// Helper extension to find Activity from Context
+fun Context.findActivity(): android.app.Activity? {
+    var context = this
+    while (context is android.content.ContextWrapper) {
+        if (context is android.app.Activity) return context
+        context = context.baseContext
+    }
+    return null
 }
