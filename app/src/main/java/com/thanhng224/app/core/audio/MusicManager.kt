@@ -38,26 +38,56 @@ class MusicManager @Inject constructor(
     }
 
     private fun playIntro() {
-        release() // Safety check
-        mediaPlayer = MediaPlayer.create(context, introResId).apply {
-            setOnCompletionListener {
+        try {
+            release() // Safety check
+            mediaPlayer = MediaPlayer.create(context, introResId)
+            if (mediaPlayer == null) {
+                // If intro fails, try skipping to random
                 playNextRandomTrack()
+                return
             }
-            start()
+            
+            mediaPlayer?.apply {
+                setOnCompletionListener {
+                    playNextRandomTrack()
+                }
+                setOnErrorListener { _, _, _ ->
+                    playNextRandomTrack() // Skip on error
+                    true
+                }
+                start()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+             // Fallback to random if intro crashes
+            playNextRandomTrack()
         }
     }
 
     private fun playNextRandomTrack() {
-        release()
-        
-        // Pick a random track
-        val nextTrackResId = playlist.random()
-        
-        mediaPlayer = MediaPlayer.create(context, nextTrackResId).apply {
-            setOnCompletionListener {
-                playNextRandomTrack() // Loop forever
+        try {
+            release()
+            
+            if (playlist.isEmpty()) return
+
+            // Pick a random track
+            val nextTrackResId = playlist.random()
+            
+            mediaPlayer = MediaPlayer.create(context, nextTrackResId)
+            if (mediaPlayer == null) return // Failed to load, just silent.
+
+            mediaPlayer?.apply {
+                setOnCompletionListener {
+                    playNextRandomTrack() // Loop forever
+                }
+                setOnErrorListener { _, _, _ ->
+                    playNextRandomTrack() // Try another one
+                    true
+                }
+                start()
             }
-            start()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
