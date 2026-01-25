@@ -56,6 +56,7 @@ fun SnakeGameScreen(
     val gameState by viewModel.gameState.collectAsState()
     val snakeBody by viewModel.snakeBody.collectAsState()
     val food by viewModel.food.collectAsState()
+    val foodType by viewModel.foodType.collectAsState()
     val score by viewModel.score.collectAsState()
     val highScore by viewModel.highScore.collectAsState(initial = 0)
 
@@ -117,7 +118,7 @@ fun SnakeGameScreen(
             gameState = gameState,
             snakeBody = snakeBody,
             food = food,
-            foodEmoji = viewModel.foodEmoji.collectAsState().value,
+            foodType = foodType,
             currentDirection = viewModel.getCurrentDirection(),
             isHealthyMode = viewModel.isHealthyMode.collectAsState().value,
             eatingScale = eatingAnim.value,
@@ -142,7 +143,7 @@ private fun SnakeBoard(
     gameState: GameState,
     snakeBody: List<Point>,
     food: Point,
-    foodEmoji: String,
+    foodType: FoodType,
     currentDirection: Direction,
     isHealthyMode: Boolean,
     eatingScale: Float,
@@ -239,11 +240,7 @@ private fun SnakeBoard(
                 drawLine(gridColor, Offset(0f, j * cellPx), Offset(size.width, j * cellPx), strokeWidth)
             }
 
-            // SNAKE
-            val textPaint = android.graphics.Paint().apply {
-                textSize = cellPx * 0.8f
-                textAlign = android.graphics.Paint.Align.CENTER
-            }
+
 
             snakeBody.asReversed().forEachIndexed { index, point ->
                 val isHead = index == snakeBody.lastIndex
@@ -313,15 +310,19 @@ private fun SnakeBoard(
             }
 
             // FOOD
-            try {
-                drawIntoCanvas { canvas ->
-                     val xPos = (food.first * cellPx) + (cellPx / 2)
-                     val yPos = (food.second * cellPx) + (cellPx / 2) - ((textPaint.descent() + textPaint.ascent()) / 2)
-                     canvas.nativeCanvas.drawText(foodEmoji, xPos, yPos, textPaint)
-                }
-            } catch (e: Throwable) {
-                // Fallback food
-                drawCircle(Color.Red, cellPx * 0.4f, Offset((food.first * cellPx) + cellPx/2, (food.second * cellPx) + cellPx/2))
+            val foodColor = when(foodType) {
+                FoodType.GOLDEN -> Color(0xFFFFD700) // Gold
+                FoodType.HEALTHY -> Color(0xFF4CAF50) // Green
+                else -> Color(0xFFF44336) // Red (Junk)
+            }
+            
+            // Draw Main Food Circle
+            val foodCenter = Offset((food.first * cellPx) + cellPx/2, (food.second * cellPx) + cellPx/2)
+            drawCircle(foodColor, cellPx * 0.4f, foodCenter)
+            
+            // Add Shine for Golden
+            if (foodType == FoodType.GOLDEN) {
+                drawCircle(Color.White.copy(alpha=0.6f), cellPx * 0.15f, Offset(foodCenter.x - 4f, foodCenter.y - 4f))
             }
         }
         
