@@ -251,7 +251,7 @@ private fun SnakeBoard(
                     }
                 }
             }
-        }
+
         
         // Idle/Game Over Overlay (Simple Dim)
         if (gameState != GameState.PLAYING) {
