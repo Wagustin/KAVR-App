@@ -9,7 +9,7 @@ import kotlin.random.Random
 
 @Singleton
 class MusicManager @Inject constructor(
-    private val context: Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
 ) {
 
     private var mediaPlayer: MediaPlayer? = null
