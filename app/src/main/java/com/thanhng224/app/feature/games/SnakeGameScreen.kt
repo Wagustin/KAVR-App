@@ -27,7 +27,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -170,6 +172,8 @@ private fun SnakeBoard(
     // Samsung A12 Optimization: Removed expensive RenderEffect Blur.
     // Low-end GPUs struggle with real-time blur. Using simple dim overlay instead.
 
+    val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -202,7 +206,7 @@ private fun SnakeBoard(
             if (cellPx <= 1f) return@Canvas
 
             // 0. Draw Watermark Score (Behind everything)
-            val textLayoutResult = androidx.compose.ui.text.rememberTextMeasurer().measure(
+            val textLayoutResult = textMeasurer.measure(
                 text = androidx.compose.ui.text.AnnotatedString(score.toString()),
                 style = androidx.compose.ui.text.TextStyle(
                     fontSize = 120.sp,
