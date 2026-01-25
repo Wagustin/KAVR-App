@@ -88,17 +88,39 @@ fun SnakeGameScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.surface),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+    // Root container with Dark Background for "Borders"
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF263238)), // Dark Blue-Grey Background (Hole-in-one style)
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // --- Score Card ---
+        androidx.compose.material3.Card(
+            colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.3f)),
+            modifier = Modifier.padding(bottom = 24.dp)
         ) {
+            Text(
+                text = "SCORE: $score",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFFFFD700), // Gold
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            )
+        }
 
-
-            // --- Game Board ---
+        // --- Game Board Container ---
+        // This box constrains the board size and provides the "Dark Margins" effect relative to the screen
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.9f) // Restrict width to 90% of screen = Visible side margins
+                .fillMaxHeight(0.75f) // Restrict height = Visible top/bottom margins
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.Black) // Inner dark frame
+                .padding(4.dp), // Thin black border line
+            contentAlignment = Alignment.Center
+        ) {
             SnakeBoard(
                 gameState = gameState,
                 snakeBody = snakeBody,
@@ -172,20 +194,14 @@ private fun SnakeBoard(
     // Samsung A12 Optimization: Removed expensive RenderEffect Blur.
     // Low-end GPUs struggle with real-time blur. Using simple dim overlay instead.
 
-    val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
-
+    // Removed watermark logic for cleanliness
+    
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(if(SnakeViewModel.GRID_ROWS > 0) SnakeViewModel.GRID_COLS.toFloat() / SnakeViewModel.GRID_ROWS.toFloat() else 0.6f)
-            .padding(16.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF8D6E63))
-            .padding(8.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .fillMaxSize() // Fill the constrained container defined above
+            .clip(RoundedCornerShape(20.dp)) // Inner roundness
             .background(boardColor1)
             .pointerInput(gameState) {
-                 // ... (Gestures remain same)
                  if (gameState == GameState.PLAYING) {
                     detectDragGestures { change, dragAmount ->
                         change.consume()
