@@ -1,9 +1,15 @@
 package com.thanhng224.app.feature.games
 
-import androidx.compose.ui.graphics.graphicsLayer
-
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas as AndroidCanvas
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -14,33 +20,28 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.foundation.border
-import androidx.compose.animation.animateColorAsState
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kotlin.math.abs
@@ -48,7 +49,7 @@ import kotlin.math.abs
 @Suppress("DEPRECATION")
 @Composable
 fun SnakeGameScreen(
-    navController: NavController, // Parámetro añadido para la navegación
+    navController: NavController,
     viewModel: SnakeViewModel = viewModel()
 ) {
     val gameState by viewModel.gameState.collectAsState()
@@ -58,8 +59,8 @@ fun SnakeGameScreen(
     val highScore by viewModel.highScore.collectAsState(initial = 0)
 
     // Animations
-    val eatingAnim = remember { androidx.compose.animation.core.Animatable(1f) }
-    androidx.compose.runtime.LaunchedEffect(score) {
+    val eatingAnim = remember { Animatable(1f) }
+    LaunchedEffect(score) {
         if (score > 0) {
             eatingAnim.snapTo(1.3f)
             eatingAnim.animateTo(1f)
@@ -68,11 +69,11 @@ fun SnakeGameScreen(
 
     // High Score Logic
     val isNewRecord = score > highScore && score > 0
-    val highScoreScale by androidx.compose.animation.core.animateFloatAsState(
+    val highScoreScale by animateFloatAsState(
         targetValue = if (isNewRecord) 1.3f else 1f,
         label = "scale"
     )
-    val highScoreColor by androidx.compose.animation.animateColorAsState(
+    val highScoreColor by animateColorAsState(
          targetValue = if (isNewRecord) Color(0xFFFFD700) else MaterialTheme.colorScheme.primary,
          label = "color"
     )
@@ -118,14 +119,13 @@ fun SnakeGameScreen(
             foodEmoji = viewModel.foodEmoji.collectAsState().value,
             currentDirection = viewModel.getCurrentDirection(),
             isHealthyMode = viewModel.isHealthyMode.collectAsState().value,
-            eatingScale = eatingAnim.value, // Pass animation value
+            eatingScale = eatingAnim.value,
             onDirectionChange = { viewModel.changeDirection(it) },
             onStartGame = { viewModel.startGame() }
         )
     }
 
-
-// --- POPUP FINAL (Game Over / Win) ---
+    // --- POPUP FINAL ---
     if (gameState == GameState.GAMEOVER || gameState == GameState.WON) {
         FinalScoreDialog(
             gameState = gameState,
@@ -144,45 +144,45 @@ private fun SnakeBoard(
     foodEmoji: String,
     currentDirection: Direction,
     isHealthyMode: Boolean,
-    eatingScale: Float, // Receive animation
+    eatingScale: Float,
     onDirectionChange: (Direction) -> Unit,
     onStartGame: () -> Unit
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     
-    // --- LOAD SNAKE HEAD IMAGES ---
-    // Standard Heads
-    var headUp by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var headDown by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var headLeft by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var headRight by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    // --- LOAD HEAD ASSETS SAFELY ---
+    var headUp by remember { mutableStateOf<Bitmap?>(null) }
+    var headDown by remember { mutableStateOf<Bitmap?>(null) }
+    var headLeft by remember { mutableStateOf<Bitmap?>(null) }
+    var headRight by remember { mutableStateOf<Bitmap?>(null) }
     
-    // Open Mouth Heads
-    var headUpOpen by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var headDownOpen by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var headLeftOpen by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var headRightOpen by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var headUpOpen by remember { mutableStateOf<Bitmap?>(null) }
+    var headDownOpen by remember { mutableStateOf<Bitmap?>(null) }
+    var headLeftOpen by remember { mutableStateOf<Bitmap?>(null) }
+    var headRightOpen by remember { mutableStateOf<Bitmap?>(null) }
     
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            // Load Standard
-            headUp = loadBitmapFromDrawable(context, "snake_head_up")
-            headDown = loadBitmapFromDrawable(context, "snake_head_down")
-            headLeft = loadBitmapFromDrawable(context, "snake_head_left")
-            headRight = loadBitmapFromDrawable(context, "snake_head_right")
+            // Helper to load small bitmaps (cached)
+            fun load(name: String) = loadBitmapSafe(context, name, 128, 128)
             
-            // Load Open
-            headUpOpen = loadBitmapFromDrawable(context, "snake_head_up_open")
-            headDownOpen = loadBitmapFromDrawable(context, "snake_head_down_open")
-            headLeftOpen = loadBitmapFromDrawable(context, "snake_head_left_open")
-            headRightOpen = loadBitmapFromDrawable(context, "snake_head_right_open")
+            headUp = load("snake_head_up")
+            headDown = load("snake_head_down")
+            headLeft = load("snake_head_left")
+            headRight = load("snake_head_right")
+            
+            headUpOpen = load("snake_head_up_open")
+            headDownOpen = load("snake_head_down_open")
+            headLeftOpen = load("snake_head_left_open")
+            headRightOpen = load("snake_head_right_open")
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(GRID_COLS.toFloat() / GRID_ROWS.toFloat()) // Vertical Aspect Ratio
+            // Protect against DivisionByZero if GRID values are 0 (paranoia)
+            .aspectRatio(if(GRID_ROWS > 0) GRID_COLS.toFloat() / GRID_ROWS.toFloat() else 0.6f)
             .padding(4.dp) 
             .clip(RoundedCornerShape(16.dp)) 
             .background(Color(0xFF81C784)) 
@@ -203,7 +203,7 @@ private fun SnakeBoard(
                 }
             }
     ) {
-        // HEALTHY MODE VISUALS
+        // HEALTHY MODE
         val borderColor = if (isHealthyMode) animateColorAsState(
             targetValue = if(System.currentTimeMillis() % 500 < 250) Color.Yellow else Color(0xFFFFD700),
             label = "flash"
@@ -214,49 +214,28 @@ private fun SnakeBoard(
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val cellSize = size.width / GRID_COLS
-            val cellPx = size.width / GRID_COLS
-            
-            // OPTIMIZATION: Cache Colors
-            val darkGrass = Color(0xFF66BB6A)
-            val lightGrass = Color(0xFF81C784)
-            val healthyGrass = Color.Yellow.copy(alpha=0.2f)
-            
+            val cellPx = if(GRID_COLS > 0) size.width / GRID_COLS else 0f
+            if (cellPx <= 0) return@Canvas // Prevent crash if measured size is 0
+
+            // Grid
+            val bgColor = Color(0xFF263238) 
+            val gridColor = Color.White.copy(alpha = 0.05f) 
+            drawRect(color = bgColor, size = size)
+
+            val strokeWidth = 1.dp.toPx()
+            for (i in 0..GRID_COLS) {
+                drawLine(gridColor, Offset(i * cellPx, 0f), Offset(i * cellPx, size.height), strokeWidth)
+            }
+            for (j in 0..GRID_ROWS) {
+                drawLine(gridColor, Offset(0f, j * cellPx), Offset(size.width, j * cellPx), strokeWidth)
+            }
+
+            // SNAKE
             val textPaint = android.graphics.Paint().apply {
                 textSize = cellPx * 0.8f
                 textAlign = android.graphics.Paint.Align.CENTER
             }
-            
-            // 1. CLEANER BACKGROUND (Grid Lines instead of Checkerboard)
-            val bgColor = Color(0xFF263238) // Dark Slate (Better contrast for neon snake/food)
-            val gridColor = Color.White.copy(alpha = 0.05f) // Very subtle lines
-            
-            drawRect(color = bgColor, size = size)
 
-            // Draw Grid Lines
-            val strokeWidth = 1.dp.toPx()
-            
-            // Vertical Lines
-            for (i in 0..GRID_COLS) {
-                drawLine(
-                    color = gridColor,
-                    start = Offset(i * cellPx, 0f),
-                    end = Offset(i * cellPx, size.height),
-                    strokeWidth = strokeWidth
-                )
-            }
-            // Horizontal Lines
-            for (j in 0..GRID_ROWS) {
-                drawLine(
-                    color = gridColor,
-                    start = Offset(0f, j * cellPx),
-                    end = Offset(size.width, j * cellPx),
-                    strokeWidth = strokeWidth
-                )
-            }
-
-            // 2. SNAKE BODY
-            // Draw from tail to head
             snakeBody.asReversed().forEachIndexed { index, point ->
                 val isHead = index == snakeBody.lastIndex
                 val color = if (isHead) Color(0xFF1B5E20) else Color(0xFF2E7D32)
@@ -265,11 +244,9 @@ private fun SnakeBoard(
                 val center = Offset(topLeft.x + cellPx/2, topLeft.y + cellPx/2)
                 
                 if (isHead) {
-                    // Calculate distance to food
                     val dist = abs(point.first - food.first) + abs(point.second - food.second)
                     val isMouthOpen = dist <= 2
                     
-                    // Try to use Bitmap
                     val bitmap = if (isMouthOpen) {
                         when(currentDirection) {
                             Direction.UP -> headUpOpen ?: headUp
@@ -284,64 +261,44 @@ private fun SnakeBoard(
                             Direction.LEFT -> headLeft
                             Direction.RIGHT -> headRight
                         }
-                    } ?: headDown // Fallback to headDown or whatever available? Or shape
+                    } ?: headDown // Fallback
                     
                     if (bitmap != null) {
-                            drawIntoCanvas { canvas ->
-                                // "No hagas con un circulo" (No circle clip)
-                                // "Se ven muy grande" (Too big) -> Reduce scales
-                                
-                                val boost = if (isMouthOpen) 1.15f else 1.0f
-                                
-
-                                
-                                // Clean reset for new images
-                                // Uniform scale for all directions since assets are now consistent
-                                val baseScale = 3.2f 
-                                
-                                // Multiply by eating animation (pulse)
-                                val finalScale = baseScale * boost * eatingScale
-                                
-                                val scaleW = finalScale
-                                val scaleH = finalScale
-                                
-                                val w = cellPx * scaleW
-                                val h = cellPx * scaleH
-                                
-                                val offX = (w - cellPx) / 2
-                                val offY = (h - cellPx) / 2
-                                
-                                val rect = androidx.compose.ui.geometry.Rect(
-                                    left = topLeft.x - offX,
-                                    top = topLeft.y - offY,
-                                    right = topLeft.x - offX + w,
-                                    bottom = topLeft.y - offY + h
-                                )
-                                
-                                // Draw Bitmap DIRECTLY (No Circle Clip)
+                        drawIntoCanvas { canvas ->
+                            val boost = if (isMouthOpen) 1.15f else 1.0f
+                            val baseScale = 3.2f 
+                            val finalScale = baseScale * boost * eatingScale
+                            val w = cellPx * finalScale
+                            val h = cellPx * finalScale
+                            val offX = (w - cellPx) / 2
+                            val offY = (h - cellPx) / 2
+                            
+                            val rect = androidx.compose.ui.geometry.Rect(
+                                left = topLeft.x - offX,
+                                top = topLeft.y - offY,
+                                right = topLeft.x - offX + w,
+                                bottom = topLeft.y - offY + h
+                            )
+                            
+                            try {
                                 canvas.nativeCanvas.drawBitmap(
-                                    bitmap, 
-                                    null, 
+                                    bitmap, null, 
                                     android.graphics.Rect(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt()), 
                                     null
                                 )
+                            } catch (e: Exception) {
+                                // Ignore draw error
                             }
+                        }
                     } else {
-                        // FALLBACK HEAD
-                        drawRoundRect(
-                            color = color,
-                            topLeft = topLeft,
-                            size = androidx.compose.ui.geometry.Size(cellPx, cellPx),
-                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(cellPx/2, cellPx/2)
-                        )
-                        // Eyes
-                        drawCircle(Color.White, radius = cellPx * 0.15f, center = Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
-                        drawCircle(Color.White, radius = cellPx * 0.15f, center = Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
-                        drawCircle(Color.Black, radius = cellPx * 0.07f, center = Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
-                        drawCircle(Color.Black, radius = cellPx * 0.07f, center = Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
+                        // Fallback Head
+                        drawRoundRect(color, topLeft, androidx.compose.ui.geometry.Size(cellPx, cellPx), androidx.compose.ui.geometry.CornerRadius(cellPx/2, cellPx/2))
+                        drawCircle(Color.White, cellPx * 0.15f, Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
+                        drawCircle(Color.White, cellPx * 0.15f, Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
+                        drawCircle(Color.Black, cellPx * 0.07f, Offset(center.x - cellPx*0.2f, center.y - cellPx*0.1f))
+                        drawCircle(Color.Black, cellPx * 0.07f, Offset(center.x + cellPx*0.2f, center.y - cellPx*0.1f))
                     }
                 } else {
-                    // Body segment
                     drawRoundRect(
                         color = color,
                         topLeft = Offset(topLeft.x + 2f, topLeft.y + 2f),
@@ -351,23 +308,18 @@ private fun SnakeBoard(
                 }
             }
 
-            // 3. FOOD (Emoji)
-            val foodCenter = Offset((food.first * cellPx) + (cellPx / 2), (food.second * cellPx) + (cellPx / 2))
-            
+            // FOOD
             drawIntoCanvas { canvas ->
-                val xPos = (food.first * cellPx) + (cellPx / 2)
-                val yPos = (food.second * cellPx) + (cellPx / 2) - ((textPaint.descent() + textPaint.ascent()) / 2)
-                
-                canvas.nativeCanvas.drawText(foodEmoji, xPos, yPos, textPaint)
+                 val xPos = (food.first * cellPx) + (cellPx / 2)
+                 val yPos = (food.second * cellPx) + (cellPx / 2) - ((textPaint.descent() + textPaint.ascent()) / 2)
+                 canvas.nativeCanvas.drawText(foodEmoji, xPos, yPos, textPaint)
             }
         }
-
-        // INITIAL MESSAGE
+        
+        // IDLE OVERLAY
         if (gameState == GameState.IDLE) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -382,6 +334,8 @@ private fun SnakeBoard(
     }
 }
 
+// Local helper removed (Use GameUtils.loadBitmapSafe in same package)
+
 @Composable
 private fun FinalScoreDialog(
     gameState: GameState,
@@ -390,29 +344,12 @@ private fun FinalScoreDialog(
     onExit: () -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = { /* No se puede cerrar tocando fuera */ },
+        onDismissRequest = { },
         title = {
-            Text(
-                text = if (gameState == GameState.WON) "¡Ganaste!" else "Fin del Juego",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Text(if (gameState == GameState.WON) "¡Ganaste!" else "Fin del Juego", fontWeight = FontWeight.Bold)
         },
-        text = {
-            Text(
-                text = "Puntaje final: $finalScore",
-                style = MaterialTheme.typography.bodyLarge
-            )
-        },
-        confirmButton = {
-            Button(onClick = onRestart) {
-                Text("Reiniciar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onExit) {
-                Text("Salir")
-            }
-        }
+        text = { Text("Puntaje final: $finalScore") },
+        confirmButton = { Button(onClick = onRestart) { Text("Reiniciar") } },
+        dismissButton = { TextButton(onClick = onExit) { Text("Salir") } }
     )
 }

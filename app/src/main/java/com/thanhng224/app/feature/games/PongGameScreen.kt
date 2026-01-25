@@ -124,8 +124,9 @@ fun PongGameScreen(navController: NavController) {
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            agusBitmap = loadBitmapFromDrawable(context, "b_agus")
-            katBitmap = loadBitmapFromDrawable(context, "b_kat")
+            // Load scaled bitmaps (256px is plenty for paddle face)
+            agusBitmap = loadBitmapSafe(context, "b_agus", 256, 256)
+            katBitmap = loadBitmapSafe(context, "b_kat", 256, 256)
         }
     }
 
@@ -285,13 +286,7 @@ fun PongGameScreen(navController: NavController) {
     }
 }
 
-// Helper to load bitmap
-fun loadBitmapFromDrawable(context: Context, name: String): Bitmap? {
-    return try {
-        val resId = context.resources.getIdentifier(name, "drawable", context.packageName)
-        if (resId != 0) BitmapFactory.decodeResource(context.resources, resId) else null
-    } catch (e: Exception) { null }
-}
+// Helper removed (Use GameUtils.loadBitmapSafe)
 
 @Composable
 fun PongGameLoop(

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Plantilla Android Kotlin</string>
+    <string name="app_name">Birthday Games for Kitkat</string>
     <string name="settings_title">Ajustes</string>
     <string name="settings_profile_name">Usuario Admin</string>
     <string name="settings_profile_email">admin@ejemplo.com</string>
@@ -29,8 +29,8 @@
     <string name="settings_cancel_action">Cancelar</string>
     <string name="settings_close_action">Cerrar</string>
     <string name="settings_version_label">Versión 1.0.0</string>
-    <string name="settings_terms_dialog_message">Estos son términos de ejemplo para esta plantilla. Reemplázalos con los términos reales de tu producto antes del lanzamiento.</string>
-    <string name="settings_privacy_dialog_message">Esta es una política de privacidad de ejemplo. Reemplázala con el contenido real de tu política antes del lanzamiento.</string>
+    <string name="settings_terms_dialog_message">Disfruta de estos juegos creados con mucho cariño.</string>
+    <string name="settings_privacy_dialog_message">Tus datos están seguros y son solo para los juegos.</string>
     
     <!-- Auth Strings -->
     <string name="login_title">Iniciar Sesión</string>
@@ -59,9 +59,9 @@
     <string name="nav_onboarding">Intro</string>
 
     <!-- Onboarding Strings -->
-    <string name="onboarding_welcome_title">Bienvenido a la App</string>
-    <string name="onboarding_welcome_subtitle">Descubre características increíbles y comienza tu viaje hoy mismo</string>
-    <string name="onboarding_get_started_button">Empezar</string>
+    <string name="onboarding_welcome_title">¡Feliz Cumpleaños Kitkat!</string>
+    <string name="onboarding_welcome_subtitle">Prepárate para una sorpresa muy especial llena de juegos y amor.</string>
+    <string name="onboarding_get_started_button">Ver Sorpresa</string>
 
     <!-- Other Screens Strings -->
     <string name="favorites_item_title">Elemento Favorito</string>
