@@ -296,38 +296,21 @@ fun SoccerGameScreen(navController: NavController) {
                             }
                             
                             // Goal Posts
+                            // Goal Posts
                             drawRect(
                                 color = Color.White, 
                                 topLeft = Offset(goalX, goalY), 
                                 size = Size(goalW, goalH),
                                 style = Stroke(width = 10f)
                             )
-                        }
-                )
-                           
-                            // Simple Crosshatch
-                            val step = 20f
-                            // Diagonals 1
-                            // (Simplified for performance: just vertical lines behind)
-                             for (i in 1..8) {
-                                 drawLine(netColor, 
-                                    start = Offset(w * 0.1f + (w * 0.8f * i / 9), h * 0.02f),
-                                    end = Offset(w * 0.1f + (w * 0.8f * i / 9), h * 0.1f),
-                                    strokeWidth = 2f
-                                 )
-                            }
-                             // Horizontal lines
-                            for (i in 1..3) {
-                                 val y = h*0.02f + (h*0.08f * i/4)
-                                 drawLine(netColor, start = Offset(w*0.1f, y), end = Offset(w*0.9f, y))
-                            }
                             
+                            // 4. PLAYERS & BALL
                             // Draw Keeper
                             val keeperColor = Color(0xFFD32F2F) // Red Jersey
                             // Body
                             val keeperW = w * 0.16f
                             val keeperH = h * 0.06f
-                            val keeperLeft = w * kX - keeperW/2
+                            val keeperLeft = w * keeperX.floatValue - keeperW/2 // Use state directly
                             
                             drawRect(
                                 color = keeperColor, 
@@ -335,17 +318,16 @@ fun SoccerGameScreen(navController: NavController) {
                                 size = Size(keeperW, keeperH)
                             )
                             // Head
-                            drawCircle(Color(0xFFFFCC80), radius = 15f, center = Offset(w * kX, h * 0.09f))
+                            drawCircle(Color(0xFFFFCC80), radius = 15f, center = Offset(w * keeperX.floatValue, h * 0.09f))
                             
                             // Draw Ball (With classic Texture)
-                            val ballCenter = Offset(w * bPos.x, h * bPos.y)
+                            val ballCenter = Offset(w * ballPos.value.x, h * ballPos.value.y)
                             val ballRadius = 25f
                             drawCircle(Color.White, radius = ballRadius, center = ballCenter)
                             // Hexagon patterns roughly
                             drawCircle(Color.Black, radius = ballRadius, center = ballCenter, style = Stroke(width = 2f))
                             drawCircle(Color.Black, radius = ballRadius/2, center = ballCenter, style = Stroke(width = 1f))
                         }
-                 
                 )
             }
             
