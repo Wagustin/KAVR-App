@@ -45,6 +45,7 @@ class SnakeViewModel @Inject constructor(
     val highScore = appPreferences.highScore
 
     private var direction = Direction.RIGHT
+    private var lastMovedDirection = Direction.RIGHT // Track actual movement to prevent 180 turns
     private var gameLoopJob: Job? = null
     
     // Difficulty delay map
@@ -73,7 +74,8 @@ class SnakeViewModel @Inject constructor(
     }
 
     fun changeDirection(newDirection: Direction) {
-        val isOpposite = when (direction) {
+        // Check against lastMovedDirection to prevent double-input 180 turns
+        val isOpposite = when (lastMovedDirection) {
             Direction.UP -> newDirection == Direction.DOWN
             Direction.DOWN -> newDirection == Direction.UP
             Direction.LEFT -> newDirection == Direction.RIGHT
@@ -109,6 +111,9 @@ class SnakeViewModel @Inject constructor(
     private fun moveSnake() {
         if (_snakeBody.value.isEmpty()) return
         
+        // Update last moved direction to currently processed direction
+        lastMovedDirection = direction
+
         val head = _snakeBody.value.first()
         val newHead = when (direction) {
             Direction.UP -> Point(head.first, head.second - 1)
@@ -155,6 +160,7 @@ class SnakeViewModel @Inject constructor(
 
     private fun resetGame() {
         direction = Direction.RIGHT
+        lastMovedDirection = Direction.RIGHT
         _score.value = 0
         _snakeBody.value = listOf(Point(5, 10), Point(4, 10), Point(3, 10))
         generateFood()
