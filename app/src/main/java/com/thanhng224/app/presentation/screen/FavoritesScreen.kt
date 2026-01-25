@@ -284,6 +284,7 @@ fun FavoritesScreen(navController: NavController) {
                 onSelect = { difficulty ->
                     when (selectedGame) {
                         "MEMORY" -> navController.navigate(Screen.MemoryGame.createRoute(selectedPlayerMode, selectedGameType, difficulty))
+                        "PONG" -> navController.navigate(Screen.PongGame.createRoute(selectedPongMode, difficulty))
 
                         "TIMER" -> navController.navigate(Screen.TimerGame.createRoute(selectedPlayerMode, difficulty))
                         "SOCCER" -> navController.navigate(Screen.SoccerGame.createRoute(difficulty))

@@ -94,14 +94,7 @@ fun SnakeGameScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Current Score (Big)
-            Text(
-                text = "$score",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+
 
             // --- Game Board ---
             SnakeBoard(
@@ -204,11 +197,28 @@ private fun SnakeBoard(
                 }
             }
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-                val cellPx = size.width / SnakeViewModel.GRID_COLS
-                if (cellPx <= 1f) return@Canvas
+            val cellPx = size.width / SnakeViewModel.GRID_COLS
+            if (cellPx <= 1f) return@Canvas
 
-                // 1. Draw Checkerboard Background
+            // 0. Draw Watermark Score (Behind everything)
+            val textLayoutResult = androidx.compose.ui.text.rememberTextMeasurer().measure(
+                text = androidx.compose.ui.text.AnnotatedString(score.toString()),
+                style = androidx.compose.ui.text.TextStyle(
+                    fontSize = 120.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color.Black.copy(alpha = 0.1f),
+                    textAlign = TextAlign.Center
+                )
+            )
+            drawText(
+                textLayoutResult = textLayoutResult,
+                topLeft = Offset(
+                    x = (size.width - textLayoutResult.size.width) / 2,
+                    y = (size.height - textLayoutResult.size.height) / 2
+                )
+            )
+
+            // 1. Draw Checkerboard Background
                 for (i in 0 until SnakeViewModel.GRID_COLS) {
                     for (j in 0 until SnakeViewModel.GRID_ROWS) {
                         if ((i + j) % 2 == 1) {
