@@ -33,7 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.thanhng224.app.feature.memories.MemoriesViewModel
 import com.thanhng224.app.presentation.navigation.Screen
@@ -46,7 +46,7 @@ val GoldColor = Color(0xFFFFD700)
 @Composable
 fun HomeScreen(
     navController: NavHostController,
-    memoriesViewModel: MemoriesViewModel = hiltViewModel()
+    memoriesViewModel: MemoriesViewModel = viewModel()
 ) {
     val photos by memoriesViewModel.photos.collectAsState()
     val scrollState = rememberLazyStaggeredGridState()

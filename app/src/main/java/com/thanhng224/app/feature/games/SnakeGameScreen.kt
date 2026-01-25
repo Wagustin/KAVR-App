@@ -41,7 +41,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.foundation.border
 import androidx.compose.animation.animateColorAsState
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kotlin.math.abs
 
@@ -49,7 +49,7 @@ import kotlin.math.abs
 @Composable
 fun SnakeGameScreen(
     navController: NavController, // Parámetro añadido para la navegación
-    viewModel: SnakeViewModel = hiltViewModel()
+    viewModel: SnakeViewModel = viewModel()
 ) {
     val gameState by viewModel.gameState.collectAsState()
     val snakeBody by viewModel.snakeBody.collectAsState()
@@ -227,19 +227,32 @@ private fun SnakeBoard(
                 textAlign = android.graphics.Paint.Align.CENTER
             }
             
-            // 1. CHECKERBOARD BACKGROUND
-            for (i in 0 until GRID_COLS) {
-                for (j in 0 until GRID_ROWS) {
-                    val isEven = (i + j) % 2 == 0
-                    val baseColor = if (isEven) lightGrass else darkGrass
-                    val color = if (isHealthyMode && isEven) healthyGrass else baseColor
-                    
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(i * cellPx, j * cellPx),
-                        size = androidx.compose.ui.geometry.Size(cellPx, cellPx)
-                    )
-                }
+            // 1. CLEANER BACKGROUND (Grid Lines instead of Checkerboard)
+            val bgColor = Color(0xFF263238) // Dark Slate (Better contrast for neon snake/food)
+            val gridColor = Color.White.copy(alpha = 0.05f) // Very subtle lines
+            
+            drawRect(color = bgColor, size = size)
+
+            // Draw Grid Lines
+            val strokeWidth = 1.dp.toPx()
+            
+            // Vertical Lines
+            for (i in 0..GRID_COLS) {
+                drawLine(
+                    color = gridColor,
+                    start = Offset(i * cellPx, 0f),
+                    end = Offset(i * cellPx, size.height),
+                    strokeWidth = strokeWidth
+                )
+            }
+            // Horizontal Lines
+            for (j in 0..GRID_ROWS) {
+                drawLine(
+                    color = gridColor,
+                    start = Offset(0f, j * cellPx),
+                    end = Offset(size.width, j * cellPx),
+                    strokeWidth = strokeWidth
+                )
             }
 
             // 2. SNAKE BODY

@@ -207,14 +207,14 @@ fun SoccerGameScreen(navController: NavController) {
                             val w = size.width
                             val h = size.height
                             
-                            // 1. GRASS FIELD (Stripes)
-                            val stripeHeight = h / 20
-                            val darkGrass = Color(0xFF2E7D32)
-                            val lightGrass = Color(0xFF388E3C)
+                            // 1. GRASS FIELD (Vibrant Stripes)
+                            val stripeHeight = h / 12 // Bigger stripes
+                            val darkGrass = Color(0xFF1B5E20) // Deep Arcade Green
+                            val lightGrass = Color(0xFF2E7D32) // Lighter Arcade Green
                             
                             drawRect(color = darkGrass, size = size) // Base
                             
-                            for (i in 0 until 20 step 2) {
+                            for (i in 0 until 12 step 2) {
                                 drawRect(
                                     color = lightGrass,
                                     topLeft = Offset(0f, i * stripeHeight),
@@ -222,32 +222,88 @@ fun SoccerGameScreen(navController: NavController) {
                                 )
                             }
                             
-                            // Penalty Box
+                            // 2. FIELD LINES (Glowy White)
+                            val lineWidth = 6f
+                            val lineColor = Color.White.copy(alpha = 0.9f)
+                            
+                            // Penalty Box (Arcade style)
+                            val penaltyBoxWidth = w * 0.7f
+                            val penaltyBoxHeight = h * 0.25f
+                            
                             drawRect(
-                                color = Color.White.copy(alpha=0.8f),
-                                style = Stroke(width = 5f),
-                                topLeft = Offset(w * 0.2f, h * 0.05f),
-                                size = Size(w * 0.6f, h * 0.15f)
+                                color = lineColor,
+                                style = Stroke(width = lineWidth),
+                                topLeft = Offset((w - penaltyBoxWidth) / 2, 0f),
+                                size = Size(penaltyBoxWidth, penaltyBoxHeight)
                             )
                             
-                            // State Reads
-                            val bPos = ballPos.value
-                            val kX = keeperX.floatValue
+                            // Goal Area (Small box inside)
+                            val goalAreaWidth = w * 0.4f
+                            val goalAreaHeight = h * 0.1f
+                            drawRect(
+                                color = lineColor,
+                                style = Stroke(width = lineWidth),
+                                topLeft = Offset((w - goalAreaWidth) / 2, 0f),
+                                size = Size(goalAreaWidth, goalAreaHeight)
+                            )
                             
-                            // Draw Field Outline
-                            drawRect(color = Color.White.copy(alpha=0.8f), style = Stroke(width = 5f), topLeft = Offset(10f, 10f), size = Size(w - 20f, h - 20f)) 
+                            // Penalty Spot
+                            drawCircle(
+                                color = lineColor,
+                                radius = 10f,
+                                center = Offset(w / 2, h * 0.18f)
+                            )
                             
-                            // Draw Goal
+                            // Arc (D)
+                            drawArc(
+                                color = lineColor,
+                                startAngle = 0f,
+                                sweepAngle = 180f,
+                                useCenter = false,
+                                topLeft = Offset((w / 2) - (w * 0.15f), penaltyBoxHeight - (w * 0.15f)),
+                                size = Size(w * 0.3f, w * 0.3f),
+                                style = Stroke(width = lineWidth)
+                            )
+                            
+                            // 3. GOAL NET (Crosshatch)
+                            val goalX = (w - (w * 0.8f)) / 2
+                            val goalY = h * 0.02f
+                            val goalW = w * 0.8f
+                            val goalH = h * 0.08f
+                            
+                            // Net backing
+                            drawRect(color = Color.Black.copy(alpha=0.3f), topLeft = Offset(goalX, goalY), size = Size(goalW, goalH))
+                            
+                            // Net lines
+                            val netSpacing = 20f
+                            // Vertical
+                            for (nx in 0 until (goalW / netSpacing).toInt()) {
+                                drawLine(
+                                    color = Color.White.copy(alpha=0.3f),
+                                    start = Offset(goalX + nx * netSpacing, goalY),
+                                    end = Offset(goalX + nx * netSpacing, goalY + goalH),
+                                    strokeWidth = 2f
+                                )
+                            }
+                            // Horizontal
+                            for (ny in 0 until (goalH / netSpacing).toInt()) {
+                                drawLine(
+                                    color = Color.White.copy(alpha=0.3f),
+                                    start = Offset(goalX, goalY + ny * netSpacing),
+                                    end = Offset(goalX + goalW, goalY + ny * netSpacing),
+                                    strokeWidth = 2f
+                                )
+                            }
+                            
+                            // Goal Posts
                             drawRect(
                                 color = Color.White, 
-                                topLeft = Offset(w * 0.1f, h * 0.02f), 
-                                size = Size(w * 0.8f, h * 0.08f),
-                                style = Stroke(width = 8f)
+                                topLeft = Offset(goalX, goalY), 
+                                size = Size(goalW, goalH),
+                                style = Stroke(width = 10f)
                             )
-                            
-                            // Draw Net (Diamond Pattern)
-                            val netColor = Color(0x60FFFFFF)
-                            val netRect = androidx.compose.ui.geometry.Rect(w * 0.1f, h * 0.02f, w * 0.9f, h * 0.1f)
+                        }
+                )
                            
                             // Simple Crosshatch
                             val step = 20f

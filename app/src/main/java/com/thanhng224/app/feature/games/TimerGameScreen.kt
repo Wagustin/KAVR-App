@@ -82,8 +82,8 @@ fun TimerGameScreen(navController: NavController) {
     fun startGame() {
         gameState = TimerGameState.COUNTDOWN
         
-        // Randomize Target (3.00s to 9.99s)
-        val rnd = 300 + (Math.random() * 700).toInt() // 300 to 999
+        // Randomize Target (3.00s to 50.00s)
+        val rnd = 300 + (Math.random() * 4700).toInt() // 300 + 0..4700 = 300..5000 (3s-50s)
         targetTimeValue = rnd / 100f
         
         // Reset values
