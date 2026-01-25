@@ -222,23 +222,7 @@ private fun SnakeBoard(
             val cellPx = size.width / SnakeViewModel.GRID_COLS
             if (cellPx <= 1f) return@Canvas
 
-            // 0. Draw Watermark Score (Behind everything)
-            val textLayoutResult = textMeasurer.measure(
-                text = androidx.compose.ui.text.AnnotatedString(score.toString()),
-                style = androidx.compose.ui.text.TextStyle(
-                    fontSize = 120.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.Black.copy(alpha = 0.1f),
-                    textAlign = TextAlign.Center
-                )
-            )
-            drawText(
-                textLayoutResult = textLayoutResult,
-                topLeft = Offset(
-                    x = (size.width - textLayoutResult.size.width) / 2,
-                    y = (size.height - textLayoutResult.size.height) / 2
-                )
-            )
+
 
             // 1. Draw Checkerboard Background
                 for (i in 0 until SnakeViewModel.GRID_COLS) {
