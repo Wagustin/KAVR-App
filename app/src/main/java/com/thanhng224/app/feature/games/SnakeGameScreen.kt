@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -90,15 +91,24 @@ fun SnakeGameScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF263238)), 
+            .background(Color(0xFF263238))
+            .padding(top = 16.dp, bottom = 32.dp), // General screen padding
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Score Component (Observes its own state)
+        // Score Component
         ScoreCard(viewModel)
 
-        // Board Component (Observes its own state)
-        SnakeBoardContainer(viewModel)
+        // Board Component - Takes all remaining space and centers the board
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp), // Side padding for the board
+            contentAlignment = Alignment.Center
+        ) {
+            SnakeBoardContainer(viewModel)
+        }
     }
 
     // Game Over Dialog
@@ -203,109 +213,113 @@ private fun SnakeBoardRenderer(
         }
     }
 
-    // Aspect Ratio Enforced Box
+    val headLeftOpen = ImageBitmap.imageResource(R.drawable.snake_head_left_open)
+    val headRightOpen = ImageBitmap.imageResource(R.drawable.snake_head_right_open)
+
+    val boardColor1 = Color(0xFFACCE72)
+    val boardColor2 = Color(0xFFA2C765)
+    val bodyColor = Color(0xFF458648)
+
+    // The Board itself - Scales to fit parent while keeping aspect ratio
     Box(
         modifier = Modifier
-            .fillMaxWidth(0.95f)
-            .fillMaxHeight(0.85f)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.Black)
-            .padding(4.dp),
-        contentAlignment = Alignment.Center
-    ) {
-         Box(
-            modifier = Modifier
-                .aspectRatio(SnakeViewModel.GRID_COLS.toFloat() / SnakeViewModel.GRID_ROWS.toFloat())
-                .clip(RoundedCornerShape(20.dp))
-                .background(boardColor1)
-                .pointerInput(gameState) {
-                     if (gameState == GameState.PLAYING) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            val (x, y) = dragAmount
-                            if (abs(x) > abs(y)) {
-                                if (x > 0) onDirectionChange(Direction.RIGHT) else onDirectionChange(Direction.LEFT)
-                            } else {
-                                if (y > 0) onDirectionChange(Direction.DOWN) else onDirectionChange(Direction.UP)
-                            }
+            .aspectRatio(SnakeViewModel.GRID_COLS.toFloat() / SnakeViewModel.GRID_ROWS.toFloat())
+            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black) // Border color
+            .padding(4.dp) // Border thickness
+            .clip(RoundedCornerShape(12.dp)) // Inner content clip
+            .background(boardColor1)
+            .pointerInput(gameState) {
+                 if (gameState == GameState.PLAYING) {
+                    detectDragGestures { change, dragAmount ->
+                        change.consume()
+                        val (x, y) = dragAmount
+                        if (abs(x) > abs(y)) {
+                            if (x > 0) onDirectionChange(Direction.RIGHT) else onDirectionChange(Direction.LEFT)
+                        } else {
+                            if (y > 0) onDirectionChange(Direction.DOWN) else onDirectionChange(Direction.UP)
                         }
-                    } else {
-                        detectTapGestures { if (gameState == GameState.IDLE) onStartGame() }
+                    }
+                } else {
+                    detectTapGestures { if (gameState == GameState.IDLE) onStartGame() }
+                }
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // Because we enforce Aspect Ratio on the Box, size.width/COLS should equal size.height/ROWS
+            // But we use min to be absolutely safe against float rounding errors.
+            val cellPx = kotlin.math.min(
+                size.width / SnakeViewModel.GRID_COLS, 
+                size.height / SnakeViewModel.GRID_ROWS
+            )
+            
+            // Center the grid (just in case of micro-pixels)
+            val offsetX = (size.width - (cellPx * SnakeViewModel.GRID_COLS)) / 2
+            val offsetY = (size.height - (cellPx * SnakeViewModel.GRID_ROWS)) / 2
+
+            if (cellPx <= 1f) return@Canvas
+
+            translate(left = offsetX, top = offsetY) {
+                // 1. Checkboard
+                for (i in 0 until SnakeViewModel.GRID_COLS) {
+                    for (j in 0 until SnakeViewModel.GRID_ROWS) {
+                        if ((i + j) % 2 == 1) {
+                            drawRect(
+                                color = boardColor2,
+                                topLeft = Offset(i * cellPx, j * cellPx),
+                                size = androidx.compose.ui.geometry.Size(cellPx, cellPx)
+                            )
+                        }
                     }
                 }
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val cellPx = kotlin.math.min(
-                    size.width / SnakeViewModel.GRID_COLS, 
-                    size.height / SnakeViewModel.GRID_ROWS
-                )
                 
-                val offsetX = (size.width - (cellPx * SnakeViewModel.GRID_COLS)) / 2
-                val offsetY = (size.height - (cellPx * SnakeViewModel.GRID_ROWS)) / 2
+                // 2. Food
+                val foodCenter = Offset((food.first * cellPx) + cellPx/2, (food.second * cellPx) + cellPx/2)
+                drawCircle(color = Color.Black.copy(alpha = 0.2f), radius = cellPx * 0.35f, center = Offset(foodCenter.x + 4f, foodCenter.y + 4f))
+                drawCircle(color = Color(0xFFE53935), radius = cellPx * 0.4f, center = foodCenter)
+                drawCircle(color = Color(0xFF81C784), radius = cellPx * 0.15f, center = Offset(foodCenter.x + cellPx*0.2f, foodCenter.y - cellPx*0.3f))
 
-                if (cellPx <= 1f) return@Canvas
-
-                translate(left = offsetX, top = offsetY) {
-                    // 1. Checkboard
-                    for (i in 0 until SnakeViewModel.GRID_COLS) {
-                        for (j in 0 until SnakeViewModel.GRID_ROWS) {
-                            if ((i + j) % 2 == 1) {
-                                drawRect(
-                                    color = boardColor2,
-                                    topLeft = Offset(i * cellPx, j * cellPx),
-                                    size = androidx.compose.ui.geometry.Size(cellPx, cellPx)
-                                )
-                            }
-                        }
-                    }
+                // 3. Snake
+                snakeBody.asReversed().forEachIndexed { index, point ->
+                    val isHead = index == snakeBody.lastIndex
+                    val topLeft = Offset(point.first * cellPx, point.second * cellPx)
                     
-                    // 2. Food
-                    val foodCenter = Offset((food.first * cellPx) + cellPx/2, (food.second * cellPx) + cellPx/2)
-                    drawCircle(color = Color.Black.copy(alpha = 0.2f), radius = cellPx * 0.35f, center = Offset(foodCenter.x + 4f, foodCenter.y + 4f))
-                    drawCircle(color = Color(0xFFE53935), radius = cellPx * 0.4f, center = foodCenter)
-                    drawCircle(color = Color(0xFF81C784), radius = cellPx * 0.15f, center = Offset(foodCenter.x + cellPx*0.2f, foodCenter.y - cellPx*0.3f))
-
-                    // 3. Snake
-                    snakeBody.asReversed().forEachIndexed { index, point ->
-                        val isHead = index == snakeBody.lastIndex
-                        val topLeft = Offset(point.first * cellPx, point.second * cellPx)
-                        
-                        if (isHead) {
-                            val image = if (isMouthOpen) {
-                                 when(currentDirection) {
-                                    Direction.UP -> headUpOpen
-                                    Direction.DOWN -> headDownOpen
-                                    Direction.LEFT -> headLeftOpen
-                                    Direction.RIGHT -> headRightOpen
-                                }
-                            } else {
-                                when(currentDirection) {
-                                    Direction.UP -> headUp
-                                    Direction.DOWN -> headDown
-                                    Direction.LEFT -> headLeft
-                                    Direction.RIGHT -> headRight
-                                }
+                    if (isHead) {
+                        val image = if (isMouthOpen) {
+                             when(currentDirection) {
+                                Direction.UP -> headUpOpen
+                                Direction.DOWN -> headDownOpen
+                                Direction.LEFT -> headLeftOpen
+                                Direction.RIGHT -> headRightOpen
                             }
-                            val headSize = (cellPx * 2.8f).toInt()
-                            val offset = (headSize - cellPx) / 2
-                            drawImage(image = image, dstOffset = androidx.compose.ui.unit.IntOffset( (topLeft.x - offset).toInt(), (topLeft.y - offset).toInt() ), dstSize = androidx.compose.ui.unit.IntSize(headSize, headSize))
                         } else {
-                            val bodySize = cellPx * 0.9f
-                            val bodyOffset = (cellPx - bodySize) / 2
-                            drawRoundRect(color = bodyColor, topLeft = Offset(topLeft.x + bodyOffset, topLeft.y + bodyOffset), size = androidx.compose.ui.geometry.Size(bodySize, bodySize), cornerRadius = androidx.compose.ui.geometry.CornerRadius(bodySize * 0.3f, bodySize * 0.3f))
+                            when(currentDirection) {
+                                Direction.UP -> headUp
+                                Direction.DOWN -> headDown
+                                Direction.LEFT -> headLeft
+                                Direction.RIGHT -> headRight
+                            }
                         }
+                        val headSize = (cellPx * 2.8f).toInt()
+                        val offset = (headSize - cellPx) / 2
+                        drawImage(image = image, dstOffset = androidx.compose.ui.unit.IntOffset( (topLeft.x - offset).toInt(), (topLeft.y - offset).toInt() ), dstSize = androidx.compose.ui.unit.IntSize(headSize, headSize))
+                    } else {
+                        val bodySize = cellPx * 0.9f
+                        val bodyOffset = (cellPx - bodySize) / 2
+                        drawRoundRect(color = bodyColor, topLeft = Offset(topLeft.x + bodyOffset, topLeft.y + bodyOffset), size = androidx.compose.ui.geometry.Size(bodySize, bodySize), cornerRadius = androidx.compose.ui.geometry.CornerRadius(bodySize * 0.3f, bodySize * 0.3f))
                     }
                 }
             }
-            
-             if (gameState != GameState.PLAYING) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.5f)), contentAlignment = Alignment.Center) {
-                    if (gameState == GameState.IDLE) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("TAP PARA JUGAR", style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.Black)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Desliza para moverte", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha=0.8f))
-                        }
+        }
+        
+         if (gameState != GameState.PLAYING) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.5f)), contentAlignment = Alignment.Center) {
+                if (gameState == GameState.IDLE) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("TAP PARA JUGAR", style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.Black)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Desliza para moverte", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha=0.8f))
                     }
                 }
             }
