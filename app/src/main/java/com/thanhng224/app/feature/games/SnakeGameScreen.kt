@@ -1,6 +1,13 @@
 package com.thanhng224.app.feature.games
 
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -32,7 +39,6 @@ import com.thanhng224.app.R
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun SnakeGameScreen(
     navController: NavController,
     viewModel: SnakeViewModel = hiltViewModel()
@@ -105,6 +111,7 @@ fun SnakeGameScreen(
                 food = food,
                 currentDirection = viewModel.getCurrentDirection(),
                 isMouthOpen = viewModel.isMouthOpen(),
+                score = score,
                 onDirectionChange = { viewModel.changeDirection(it) },
                 onStartGame = { viewModel.startGame() }
             )
@@ -137,6 +144,7 @@ private fun SnakeBoard(
     food: Point,
     currentDirection: Direction,
     isMouthOpen: Boolean,
+    score: Int,
     onDirectionChange: (Direction) -> Unit,
     onStartGame: () -> Unit
 ) {
