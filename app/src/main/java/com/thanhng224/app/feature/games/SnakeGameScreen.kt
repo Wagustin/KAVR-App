@@ -213,12 +213,7 @@ private fun SnakeBoardRenderer(
         }
     }
 
-    val headLeftOpen = ImageBitmap.imageResource(R.drawable.snake_head_left_open)
-    val headRightOpen = ImageBitmap.imageResource(R.drawable.snake_head_right_open)
 
-    val boardColor1 = Color(0xFFACCE72)
-    val boardColor2 = Color(0xFFA2C765)
-    val bodyColor = Color(0xFF458648)
 
     // The Board itself - Scales to fit parent while keeping aspect ratio
     Box(
