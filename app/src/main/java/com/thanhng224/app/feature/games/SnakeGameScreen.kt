@@ -197,6 +197,7 @@ private fun SnakeBoard(
                 }
             }
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val cellPx = size.width / SnakeViewModel.GRID_COLS
             if (cellPx <= 1f) return@Canvas
 
