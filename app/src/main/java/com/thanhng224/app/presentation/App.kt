@@ -49,7 +49,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.thanhng224.app.feature.auth.presentation.ui.LoginScreen
 import com.thanhng224.app.feature.games.MemoryGameScreen
-import com.thanhng224.app.feature.games.SnakeGameScreen
+
 import com.thanhng224.app.feature.memories.MemoriesScreen
 import com.thanhng224.app.feature.onboarding.presentation.ui.OnboardingScreen
 import com.thanhng224.app.feature.product.presentation.ui.HomeScreen
@@ -136,12 +136,7 @@ fun App(
                         composable(Screen.Memories.route) { MemoriesScreen(navController) }
                         
                         // CORRECCIÓN: Rutas de juegos con argumentos actualizados
-                        composable(
-                            route = Screen.SnakeGame.route,
-                            arguments = listOf(navArgument("difficulty") { type = NavType.IntType })
-                        ) { 
-                            SnakeGameScreen(navController = navController)
-                        }
+
                         
                         composable(
                             route = Screen.MemoryGame.route,
