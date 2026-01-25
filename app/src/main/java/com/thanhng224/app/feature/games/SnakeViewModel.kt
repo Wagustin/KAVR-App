@@ -12,19 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.max
 import kotlin.random.Random
 
-// --- TIPOS DE COMIDA ---
-enum class FoodType {
-    JUNK, GOLDEN, HEALTHY
-}
-
-// --- AJUSTE DE VELOCIDADES ---
-private const val CASUAL_DELAY = 220L         // Lento y relajante (Slower)
-private const val TRYHARD_START_DELAY = 170L  // Velocidad media inicial (Slower)
-private const val TRYHARD_MIN_DELAY = 40L     // Velocidad máxima injugable
-private const val SPEED_STEP = 8L             // Cuánto baja el delay por cada manzana
+// Simplified Constants
+private const val INITIAL_DELAY = 220L
+private const val MIN_DELAY = 60L
+private const val SPEED_STEP = 5L
 
 @HiltViewModel
 class SnakeViewModel @Inject constructor(
@@ -35,23 +28,11 @@ class SnakeViewModel @Inject constructor(
     private val _gameState = MutableStateFlow(GameState.IDLE)
     val gameState = _gameState.asStateFlow()
 
-    private val _snakeBody = MutableStateFlow<List<Point>>(emptyList())
+    private val _snakeBody = MutableStateFlow<List<Point>>(listOf(Point(5, 10), Point(4, 10), Point(3, 10)))
     val snakeBody = _snakeBody.asStateFlow()
 
     private val _food = MutableStateFlow(Point(0, 0))
     val food = _food.asStateFlow()
-    
-    // Nueva info de comida
-    private val _foodType = MutableStateFlow(FoodType.JUNK)
-    val foodType = _foodType.asStateFlow()
-    
-    private val _foodEmoji = MutableStateFlow("🍎")
-    val foodEmoji = _foodEmoji.asStateFlow()
-    
-    // Healthy Mode
-    private var healthyModeEndTime = 0L
-    private val _isHealthyMode = MutableStateFlow(false)
-    val isHealthyMode = _isHealthyMode.asStateFlow()
 
     private val _score = MutableStateFlow(0)
     val score = _score.asStateFlow()
@@ -61,13 +42,12 @@ class SnakeViewModel @Inject constructor(
     private var direction = Direction.RIGHT
     private var gameLoopJob: Job? = null
     
-    // Leemos el modo. 0 = Easy, 1 = Medium, 2 = Hard
-    private val difficulty: Int = savedStateHandle.get<Int>("difficulty") ?: 0
-
-    // EMOJIS
-    private val junkFoods = listOf("🍔", "🍕", "🌭", "🍟", "🌮", "🍩", "🍪", "🍦", "🍫")
-    private val healthyFoods = listOf("🥗", "🥦", "🥕", "🍎", "🍇", "🍉", "🍓", "🥑", "🥒")
-    private val goldenFood = "🌟"
+    // Simple Mouth Open Logic: If head is close to food
+    fun isMouthOpen(): Boolean {
+        val head = _snakeBody.value.firstOrNull() ?: return false
+        val dist = kotlin.math.abs(head.first - _food.value.first) + kotlin.math.abs(head.second - _food.value.second)
+        return dist <= 2
+    }
 
     init {
         resetGame()
@@ -94,34 +74,12 @@ class SnakeViewModel @Inject constructor(
         }
     }
     
-    // Public getter for direction to query in UI for Head Rotation
     fun getCurrentDirection(): Direction = direction
 
     private suspend fun gameLoop() {
         while (_gameState.value == GameState.PLAYING) {
-            val currentTime = System.currentTimeMillis()
-            
-            // Check Healthy Mode Expiry
-            if (_isHealthyMode.value && currentTime > healthyModeEndTime) {
-                _isHealthyMode.value = false
-                // If curr food was healthy type, maybe regen to junk? Or just keep until eaten.
-                // Generar nueva comida para "transformar" de vuelta a chatarra si no la comió
-                if (_foodType.value == FoodType.HEALTHY) {
-                    generateFood()
-                }
-            }
-            
-            val delayTime = when (difficulty) {
-                0 -> CASUAL_DELAY // Easy: Fixed Slow
-                1 -> { // Medium: Moderate Start, Slow Accel
-                     val speedUp = _score.value * (SPEED_STEP / 2)
-                     max(TRYHARD_MIN_DELAY + 40, TRYHARD_START_DELAY - speedUp)
-                }
-                else -> { // Hard: Fast Start, Fast Accel
-                     val speedUp = _score.value * SPEED_STEP
-                     max(TRYHARD_MIN_DELAY, (TRYHARD_START_DELAY - 50) - speedUp)
-                }
-            }
+            val speedUp = _score.value * SPEED_STEP
+            val delayTime = (INITIAL_DELAY - speedUp).coerceAtLeast(MIN_DELAY)
             
             delay(delayTime)
             moveSnake()
@@ -139,7 +97,7 @@ class SnakeViewModel @Inject constructor(
             Direction.RIGHT -> Point(head.first + 1, head.second)
         }
 
-        // Colisión Paredes o Cuerpo
+        // Collision Check
         if (newHead.first !in 0 until GRID_COLS || 
             newHead.second !in 0 until GRID_ROWS || 
             _snakeBody.value.contains(newHead)) {
@@ -151,20 +109,7 @@ class SnakeViewModel @Inject constructor(
         newBody.add(0, newHead)
 
         if (newHead == _food.value) {
-            // SCORING LOGIC
-            val points = when(_foodType.value) {
-                FoodType.GOLDEN -> 5
-                FoodType.HEALTHY -> 3
-                FoodType.JUNK -> 1
-            }
-            _score.update { it + points }
-            
-            // MODE TRIGGER
-            if (_foodType.value == FoodType.GOLDEN) {
-                _isHealthyMode.value = true
-                healthyModeEndTime = System.currentTimeMillis() + 15_000L // 15 seconds
-            }
-            
+            _score.update { it + 1 }
             generateFood()
         } else {
             newBody.removeAt(newBody.size - 1)
@@ -178,21 +123,6 @@ class SnakeViewModel @Inject constructor(
             newFood = Point(Random.nextInt(GRID_COLS), Random.nextInt(GRID_ROWS))
         } while (_snakeBody.value.contains(newFood))
         _food.value = newFood
-        
-        // DETERMINE TYPE
-        if (_isHealthyMode.value) {
-            _foodType.value = FoodType.HEALTHY
-            _foodEmoji.value = healthyFoods.random()
-        } else {
-            // 10% chance for Golden
-            if (Random.nextFloat() < 0.10f) {
-                _foodType.value = FoodType.GOLDEN
-                _foodEmoji.value = goldenFood
-            } else {
-                _foodType.value = FoodType.JUNK
-                _foodEmoji.value = junkFoods.random()
-            }
-        }
     }
 
     private fun endGame(win: Boolean = false) {
@@ -207,7 +137,6 @@ class SnakeViewModel @Inject constructor(
         direction = Direction.RIGHT
         _score.value = 0
         _snakeBody.value = listOf(Point(5, 10), Point(4, 10), Point(3, 10))
-        _isHealthyMode.value = false
         generateFood()
         _gameState.value = GameState.IDLE
     }

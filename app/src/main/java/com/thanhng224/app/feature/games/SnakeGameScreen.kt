@@ -49,7 +49,7 @@ fun SnakeGameScreen(
     val gameState by viewModel.gameState.collectAsState()
     val snakeBody by viewModel.snakeBody.collectAsState()
     val food by viewModel.food.collectAsState()
-    val foodType by viewModel.foodType.collectAsState()
+
     val score by viewModel.score.collectAsState()
     val highScore by viewModel.highScore.collectAsState(initial = 0)
 
@@ -107,17 +107,12 @@ fun SnakeGameScreen(
         }
 
         // --- Tablero de Juego ---
-        SnakeBoard(
             gameState = gameState,
             snakeBody = snakeBody,
             food = food,
-            foodType = foodType,
             currentDirection = viewModel.getCurrentDirection(),
-            isHealthyMode = viewModel.isHealthyMode.collectAsState().value,
-            eatingScale = eatingAnim.value,
             onDirectionChange = { viewModel.changeDirection(it) },
             onStartGame = { viewModel.startGame() }
-        )
     }
 
     // --- POPUP FINAL ---
@@ -132,21 +127,30 @@ fun SnakeGameScreen(
 }
 
 @Composable
+@Composable
 private fun SnakeBoard(
     gameState: GameState,
     snakeBody: List<Point>,
     food: Point,
-    foodType: FoodType,
     currentDirection: Direction,
-    isHealthyMode: Boolean,
-    eatingScale: Float,
+    // onDirectionChange, onStartGame...
     onDirectionChange: (Direction) -> Unit,
     onStartGame: () -> Unit
 ) {
+    // 1. Safe Asset Loading (Native Compose)
+    val headUp = ImageBitmap.imageResource(com.thanhng224.app.R.drawable.snake_head_up)
+    val headDown = ImageBitmap.imageResource(com.thanhng224.app.R.drawable.snake_head_down)
+    val headLeft = ImageBitmap.imageResource(com.thanhng224.app.R.drawable.snake_head_left)
+    val headRight = ImageBitmap.imageResource(com.thanhng224.app.R.drawable.snake_head_right)
+    
+    val headUpOpen = ImageBitmap.imageResource(com.thanhng224.app.R.drawable.snake_head_up_open)
+    val headDownOpen = ImageBitmap.imageResource(com.thanhng224.app.R.drawable.snake_head_down_open)
+    val headLeftOpen = ImageBitmap.imageResource(com.thanhng224.app.R.drawable.snake_head_left_open)
+    val headRightOpen = ImageBitmap.imageResource(com.thanhng224.app.R.drawable.snake_head_right_open)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // Protect against DivisionByZero
             .aspectRatio(if(GRID_ROWS > 0) GRID_COLS.toFloat() / GRID_ROWS.toFloat() else 0.6f)
             .padding(4.dp) 
             .clip(RoundedCornerShape(16.dp)) 
@@ -168,19 +172,9 @@ private fun SnakeBoard(
                 }
             }
     ) {
-        // HEALTHY MODE
-        val borderColor = if (isHealthyMode) animateColorAsState(
-            targetValue = if(System.currentTimeMillis() % 500 < 250) Color.Yellow else Color(0xFFFFD700),
-            label = "flash"
-        ).value else Color.Transparent
-        
-        if (isHealthyMode) {
-            Box(Modifier.fillMaxSize().background(Color.Yellow.copy(alpha=0.1f)).border(4.dp, borderColor))
-        }
-
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cellPx = if(GRID_COLS > 0) size.width / GRID_COLS else 0f
-            if (cellPx <= 0.1f) return@Canvas // Prevent crash if measured size is invalid
+            if (cellPx <= 0.1f) return@Canvas 
 
             // Grid
             val bgColor = Color(0xFF263238) 
@@ -195,65 +189,48 @@ private fun SnakeBoard(
                 drawLine(gridColor, Offset(0f, j * cellPx), Offset(size.width, j * cellPx), strokeWidth)
             }
 
-            // SNAKE BODY & HEAD
+            // SNAKE
             snakeBody.asReversed().forEachIndexed { index, point ->
                 val isHead = index == snakeBody.lastIndex
-                val color = if (isHead) Color(0xFF1B5E20) else Color(0xFF2E7D32)
                 
                 val topLeft = Offset(point.first * cellPx, point.second * cellPx)
-                val center = Offset(topLeft.x + cellPx/2, topLeft.y + cellPx/2)
                 
                 if (isHead) {
-                    // HEAD (Simple Geometric Shape)
-                    // Scale effect when eating
-                    val scale = if(eatingScale > 1f) eatingScale else 1f
-                    val headSize = cellPx * scale
-                    val headOffset = topLeft - Offset((headSize - cellPx)/2, (headSize - cellPx)/2)
+                    // Mouth Open Logic
+                    val dist = abs(point.first - food.first) + abs(point.second - food.second)
+                    val isMouthOpen = dist <= 2
                     
-                    drawRoundRect(
-                        color = color,
-                        topLeft = headOffset,
-                        size = androidx.compose.ui.geometry.Size(headSize, headSize),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(headSize/3, headSize/3)
-                    )
-                    
-                    // Eyes (White Sclera + Black Pupil)
-                    val eyeRadius = headSize * 0.15f
-                    val pupilRadius = headSize * 0.07f
-                    val eyeOffset = headSize * 0.25f
-                    
-                    // Calculate Eye Positions based on Direction
-                    val (leftEye, rightEye) = when(currentDirection) {
-                         Direction.UP -> Pair(
-                             Offset(center.x - eyeOffset, center.y - eyeOffset), 
-                             Offset(center.x + eyeOffset, center.y - eyeOffset)
-                         )
-                         Direction.DOWN -> Pair(
-                             Offset(center.x + eyeOffset, center.y + eyeOffset), 
-                             Offset(center.x - eyeOffset, center.y + eyeOffset)
-                         )
-                         Direction.LEFT -> Pair(
-                             Offset(center.x - eyeOffset, center.y + eyeOffset), 
-                             Offset(center.x - eyeOffset, center.y - eyeOffset)
-                         )
-                         Direction.RIGHT -> Pair(
-                             Offset(center.x + eyeOffset, center.y - eyeOffset), 
-                             Offset(center.x + eyeOffset, center.y + eyeOffset)
-                         )
+                    val image = if (isMouthOpen) {
+                        when(currentDirection) {
+                            Direction.UP -> headUpOpen
+                            Direction.DOWN -> headDownOpen
+                            Direction.LEFT -> headLeftOpen
+                            Direction.RIGHT -> headRightOpen
+                        }
+                    } else {
+                        when(currentDirection) {
+                            Direction.UP -> headUp
+                            Direction.DOWN -> headDown
+                            Direction.LEFT -> headLeft
+                            Direction.RIGHT -> headRight
+                        }
                     }
                     
-                    // Draw Eye 1
-                    drawCircle(Color.White, radius = eyeRadius, center = leftEye)
-                    drawCircle(Color.Black, radius = pupilRadius, center = leftEye)
+                    val finalSize = (cellPx * 3.5f).toInt() // Big head
+                    val offsetAdjustment = (finalSize - cellPx) / 2
                     
-                    // Draw Eye 2
-                    drawCircle(Color.White, radius = eyeRadius, center = rightEye)
-                    drawCircle(Color.Black, radius = pupilRadius, center = rightEye)
-                    
+                    drawImage(
+                        image = image,
+                        dstOffset = androidx.compose.ui.unit.IntOffset(
+                            (topLeft.x - offsetAdjustment).toInt(),
+                            (topLeft.y - offsetAdjustment).toInt()
+                        ),
+                        dstSize = androidx.compose.ui.unit.IntSize(finalSize, finalSize)
+                    )
                 } else {
-                    // BODY SEGMENT
+                    // Body
                     drawRoundRect(
-                        color = color,
+                        color = Color(0xFF2E7D32),
                         topLeft = Offset(topLeft.x + 2f, topLeft.y + 2f),
                         size = androidx.compose.ui.geometry.Size(cellPx - 4f, cellPx - 4f),
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f)
@@ -261,19 +238,9 @@ private fun SnakeBoard(
                 }
             }
 
-            // FOOD (Colored Circles)
-            val foodColor = when(foodType) {
-                FoodType.GOLDEN -> Color(0xFFFFD700) 
-                FoodType.HEALTHY -> Color(0xFF4CAF50) 
-                else -> Color(0xFFF44336) 
-            }
-            
+            // FOOD (Simplest possible: Red Circle)
             val foodCenter = Offset((food.first * cellPx) + cellPx/2, (food.second * cellPx) + cellPx/2)
-            drawCircle(foodColor, cellPx * 0.4f, foodCenter)
-            
-            if (foodType == FoodType.GOLDEN) {
-                drawCircle(Color.White.copy(alpha=0.6f), cellPx * 0.15f, Offset(foodCenter.x - 4f, foodCenter.y - 4f))
-            }
+            drawCircle(Color(0xFFF44336), cellPx * 0.4f, foodCenter)
         }
         
         // IDLE OVERLAY
