@@ -167,16 +167,8 @@ private fun SnakeBoard(
         }
     }
 
-    // Android 12 Blur Effect
-    val blurModifier = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && 
-                          (gameState == GameState.IDLE || gameState == GameState.GAMEOVER || gameState == GameState.WON)) {
-        Modifier.androidx.compose.ui.draw.blur(10.dp) // Compose 1.1+ supports this directly usually, or use graphicsLayer
-    } else {
-        Modifier
-    }
-    
-    // Use graphicsLayer for RenderEffect if needed, but compose `blur` modifier usually wraps it.
-    // Let's use the modifier which is safer.
+    // Samsung A12 Optimization: Removed expensive RenderEffect Blur.
+    // Low-end GPUs struggle with real-time blur. Using simple dim overlay instead.
 
     Box(
         modifier = Modifier
@@ -205,9 +197,7 @@ private fun SnakeBoard(
                 }
             }
     ) {
-        // Game Content with potential blur
-        Box(modifier = if (gameState == GameState.IDLE) Modifier.blur(8.dp) else Modifier) { 
-             Canvas(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
                 val cellPx = size.width / SnakeViewModel.GRID_COLS
                 if (cellPx <= 1f) return@Canvas
 
@@ -263,13 +253,15 @@ private fun SnakeBoard(
             }
         }
         
-        // Idle Overlay
-        if (gameState == GameState.IDLE) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.4f)), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("TAP PARA JUGAR", style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.Black)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Desliza para moverte", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha=0.8f))
+        // Idle/Game Over Overlay (Simple Dim)
+        if (gameState != GameState.PLAYING) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.5f)), contentAlignment = Alignment.Center) {
+                if (gameState == GameState.IDLE) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("TAP PARA JUGAR", style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.Black)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Desliza para moverte", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha=0.8f))
+                    }
                 }
             }
         }
