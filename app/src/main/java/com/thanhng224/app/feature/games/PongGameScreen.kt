@@ -155,6 +155,12 @@ fun PongGameLoop(
     onScoreUpdate: (Pair<Int, Int>) -> Unit
 ) {
     val density = LocalDensity.current
+    
+    // Pre-calc dimensions (toPx needs Density scope, unavailable inside withFrameNanos)
+    val pShortPx = with(density) { PADDLE_SHORT_SIDE_DP.dp.toPx() }
+    val pLongPx = with(density) { PADDLE_LONG_SIDE_DP.dp.toPx() }
+    val ballRPx = with(density) { BALL_RADIUS_DP.dp.toPx() }
+
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     
     // GAME STATE
@@ -266,8 +272,8 @@ fun PongGameLoop(
                 var nextVel = ballVel
                 
                 // Dimensions
-                val p1Size = if (isLandscape) Size(PADDLE_SHORT_SIDE_DP.dp.toPx(), PADDLE_LONG_SIDE_DP.dp.toPx()) 
-                             else Size(PADDLE_LONG_SIDE_DP.dp.toPx(), PADDLE_SHORT_SIDE_DP.dp.toPx())
+                val p1Size = if (isLandscape) Size(pShortPx, pLongPx) 
+                             else Size(pLongPx, pShortPx)
                 
                 // P1 Rect (Top/Left)
                 val p1Rect = if (isLandscape) {
@@ -295,7 +301,7 @@ fun PongGameLoop(
                     )
                 }
                 
-                val ballR = BALL_RADIUS_DP.dp.toPx()
+                val ballR = ballRPx
                 val ballRect = androidx.compose.ui.geometry.Rect(center = nextPos, radius = ballR)
                 
                 // Wall Bounces (Non-scoring walls)
