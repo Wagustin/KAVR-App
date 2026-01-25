@@ -2,6 +2,7 @@ package com.thanhng224.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.thanhng224.app.core.audio.MusicManager
 import com.thanhng224.app.core.data.local.AppPreferences
 import com.thanhng224.app.feature.auth.domain.usecases.CheckLoginStatusUseCase
 import com.thanhng224.app.feature.onboarding.domain.usecases.CheckFirstLaunchUseCase
@@ -22,7 +23,8 @@ class AppViewModel @Inject constructor(
     private val checkFirstLaunchUseCase: CheckFirstLaunchUseCase,
     private val checkLoginStatusUseCase: CheckLoginStatusUseCase,
     private val completeOnboardingUseCase: CompleteOnboardingUseCase,
-    private val appPreferences: AppPreferences
+    private val appPreferences: AppPreferences,
+    private val musicManager: MusicManager
 ) : ViewModel() {
     private val _startDestination = MutableStateFlow<String?>(null)
     val startDestination: StateFlow<String?> = _startDestination.asStateFlow()
@@ -32,6 +34,8 @@ class AppViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = false
     )
+    
+    val isMusicPlaying: StateFlow<Boolean> = musicManager.isPlaying
 
     init {
         viewModelScope.launch {
@@ -59,4 +63,21 @@ class AppViewModel @Inject constructor(
             appPreferences.setDarkMode(!current)
         }
     }
+
+    // Music Controls
+    fun toggleMusic() {
+        if (isMusicPlaying.value) {
+            musicManager.pauseMusic()
+        } else {
+            musicManager.resumeMusic()
+        }
+    }
+    
+    fun nextTrack() = musicManager.skipToNext()
+    fun previousTrack() = musicManager.skipToPrevious()
+    fun seekMusic(position: Int) = musicManager.seekTo(position)
+    fun setMusicVolume(volume: Float) = musicManager.setVolume(volume)
+    
+    fun getMusicPosition() = musicManager.getCurrentPosition()
+    fun getMusicDuration() = musicManager.getDuration()
 }

@@ -22,21 +22,34 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.thanhng224.app.presentation.viewmodel.AppViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,9 +153,16 @@ fun SettingsScreen() {
                                 onCheckedChange = { appViewModel.toggleTheme() }
                             )
                         }
-                        // Aquí se pueden agregar más ajustes (Sonido, Idioma, etc.)
                     }
                 }
+            }
+
+            // --- SECCIÓN 1.5: REPRODUCTOR DE MÚSICA ---
+            item {
+                SectionHeader("Reproductor de Música", androidx.compose.material.icons.filled.MusicNote)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                MusicPlayerCard(appViewModel)
             }
 
             // --- SECCIÓN 2: LOGROS (Dividido por Juegos) ---
@@ -323,4 +344,122 @@ fun AchievementRow(achievement: Achievement, activeColor: Color) {
              )
         }
     }
+}
+
+@Composable
+fun MusicPlayerCard(viewModel: AppViewModel) {
+    val isPlaying by viewModel.isMusicPlaying.collectAsState()
+    var currentPosition by remember { mutableIntStateOf(0) }
+    var duration by remember { mutableIntStateOf(1) } // Avoid divide by zero
+    var sliderPosition by remember { mutableFloatStateOf(0f) }
+    var volume by remember { mutableFloatStateOf(100f) } // 0..100
+    var isDraggingSlider by remember { mutableStateOf(false) }
+
+    // Polling for progress
+    LaunchedEffect(isPlaying, isDraggingSlider) {
+        if (isPlaying && !isDraggingSlider) {
+            while (true) {
+                currentPosition = viewModel.getMusicPosition()
+                duration = viewModel.getMusicDuration().coerceAtLeast(1)
+                sliderPosition = currentPosition.toFloat()
+                delay(500)
+            }
+        } else if (!isPlaying && !isDraggingSlider) {
+            // Update once when paused to ensure valid state
+            currentPosition = viewModel.getMusicPosition()
+            duration = viewModel.getMusicDuration().coerceAtLeast(1)
+            sliderPosition = currentPosition.toFloat()
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Controls Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { viewModel.previousTrack() }) {
+                    Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(32.dp))
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                IconButton(onClick = { viewModel.toggleMusic() }) {
+                    Icon(
+                        if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                IconButton(onClick = { viewModel.nextTrack() }) {
+                    Icon(Icons.Default.SkipNext, contentDescription = "Next", modifier = Modifier.size(32.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Progress Slider
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = formatTime(currentPosition),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Slider(
+                    value = sliderPosition,
+                    onValueChange = { 
+                        isDraggingSlider = true
+                        sliderPosition = it
+                    },
+                    onValueChangeFinished = {
+                        viewModel.seekMusic(sliderPosition.toInt())
+                        isDraggingSlider = false
+                    },
+                    valueRange = 0f..duration.toFloat(),
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                )
+
+                Text(
+                    text = formatTime(duration),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Volume
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.VolumeUp, contentDescription = "Volume", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Slider(
+                    value = volume,
+                    onValueChange = { 
+                        volume = it
+                        viewModel.setMusicVolume(it / 100f) // 0.0 to 1.0 needed for MediaPlayer
+                    },
+                    valueRange = 0f..100f,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+private fun formatTime(millis: Int): String {
+    val seconds = (millis / 1000) % 60
+    val minutes = (millis / 1000) / 60
+    return String.format("%02d:%02d", minutes, seconds)
 }

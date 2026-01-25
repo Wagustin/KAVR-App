@@ -3,9 +3,12 @@ package com.thanhng224.app.core.audio
 import android.content.Context
 import android.media.MediaPlayer
 import com.thanhng224.app.R
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.util.Stack
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.random.Random
 
 @Singleton
 class MusicManager @Inject constructor(
@@ -13,7 +16,14 @@ class MusicManager @Inject constructor(
 ) {
 
     private var mediaPlayer: MediaPlayer? = null
-    private var currentTrackIndex = -1 // -1 means Intro, >= 0 means playlist index
+    
+    // StateFlow for playback status
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    // History for "Previous" functionality
+    private val trackHistory = Stack<Int>()
+    private var currentTrackResId: Int = -1
 
     // The intro track is mandatory first
     private val introResId = R.raw.intro
@@ -34,80 +44,125 @@ class MusicManager @Inject constructor(
             playIntro()
         } else if (!mediaPlayer!!.isPlaying) {
             mediaPlayer?.start()
+            _isPlaying.value = true
         }
     }
 
     private fun playIntro() {
-        try {
-            release() // Safety check
-            mediaPlayer = MediaPlayer.create(context, introResId)
-            if (mediaPlayer == null) {
-                // If intro fails, try skipping to random
-                playNextRandomTrack()
-                return
-            }
-            
-            mediaPlayer?.apply {
-                setOnCompletionListener {
-                    playNextRandomTrack()
-                }
-                setOnErrorListener { _, _, _ ->
-                    playNextRandomTrack() // Skip on error
-                    true
-                }
-                start()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-             // Fallback to random if intro crashes
-            playNextRandomTrack()
+        playTrack(introResId, isIntro = true)
+    }
+
+    fun skipToNext() {
+        // Push current to history if valid
+        if (currentTrackResId != -1) {
+            trackHistory.push(currentTrackResId)
+        }
+        playNextRandomTrack()
+    }
+
+    fun skipToPrevious() {
+        if (trackHistory.isNotEmpty()) {
+            val previousTrackId = trackHistory.pop()
+            playTrack(previousTrackId)
+        } else {
+            // Restart current if no history
+            mediaPlayer?.seekTo(0)
         }
     }
 
     private fun playNextRandomTrack() {
-        try {
-            release()
-            
-            if (playlist.isEmpty()) return
+        if (playlist.isEmpty()) return
+        
+        // Simple random strategy: pick one at random
+        // Ideally we could avoid repeating the *exact* same one immediately, but simple is fine for now
+        var nextTrackResId = playlist.random()
+        
+        // Retry once if it picked the same track, just for variety
+        if (nextTrackResId == currentTrackResId && playlist.size > 1) {
+            nextTrackResId = playlist.random()
+        }
+        
+        playTrack(nextTrackResId)
+    }
 
-            // Pick a random track
-            val nextTrackResId = playlist.random()
+    private fun playTrack(resId: Int, isIntro: Boolean = false) {
+        try {
+            // Release previous resource
+            mediaPlayer?.release()
             
-            mediaPlayer = MediaPlayer.create(context, nextTrackResId)
-            if (mediaPlayer == null) return // Failed to load, just silent.
+            currentTrackResId = resId
+            mediaPlayer = MediaPlayer.create(context, resId)
+            
+            if (mediaPlayer == null) {
+                // Asset failed to load
+                if (isIntro) playNextRandomTrack()
+                else skipToNext() // Try another
+                return
+            }
 
             mediaPlayer?.apply {
                 setOnCompletionListener {
-                    playNextRandomTrack() // Loop forever
+                    // When done, auto-play next
+                    playNextRandomTrack()
                 }
                 setOnErrorListener { _, _, _ ->
-                    playNextRandomTrack() // Try another one
+                    skipToNext() // Skip on error
                     true
                 }
                 start()
+                _isPlaying.value = true
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            // Fallback
+            if (isIntro) playNextRandomTrack()
         }
     }
 
     fun pauseMusic() {
         if (mediaPlayer?.isPlaying == true) {
             mediaPlayer?.pause()
+            _isPlaying.value = false
         }
     }
 
     fun resumeMusic() {
         if (mediaPlayer != null && !mediaPlayer!!.isPlaying) {
             mediaPlayer?.start()
+            _isPlaying.value = true
         } else if (mediaPlayer == null) {
-            // Should usually not happen if app is just paused, but if killed and restored:
             startMusic()
+        }
+    }
+
+    fun seekTo(positionMs: Int) {
+        mediaPlayer?.seekTo(positionMs)
+    }
+
+    fun setVolume(volume: Float) {
+        // volume should be 0.0f to 1.0f
+        mediaPlayer?.setVolume(volume, volume)
+    }
+
+    fun getCurrentPosition(): Int {
+        return try {
+            mediaPlayer?.currentPosition ?: 0
+        } catch (e: Exception) {
+            0
+        }
+    }
+    
+    fun getDuration(): Int {
+        return try {
+            mediaPlayer?.duration ?: 0
+        } catch (e: Exception) {
+            0
         }
     }
     
     fun release() {
         mediaPlayer?.release()
         mediaPlayer = null
+        _isPlaying.value = false
     }
 }
