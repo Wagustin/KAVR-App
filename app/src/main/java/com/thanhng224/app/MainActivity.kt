@@ -14,8 +14,16 @@ import dagger.hilt.android.AndroidEntryPoint
 @Suppress("DEPRECATION")
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @javax.inject.Inject
+    lateinit var musicManager: com.thanhng224.app.core.audio.MusicManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Start music on app launch
+        musicManager.startMusic()
+
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
@@ -31,6 +39,23 @@ class MainActivity : ComponentActivity() {
             KotlinAndroidTemplateTheme {
                 App()
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        musicManager.resumeMusic()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        musicManager.pauseMusic()
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isFinishing) {
+             musicManager.release()
         }
     }
 }

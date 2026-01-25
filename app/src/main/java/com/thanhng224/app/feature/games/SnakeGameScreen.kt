@@ -114,8 +114,8 @@ fun SnakeGameScreen(
         // This box constrains the board size and provides the "Dark Margins" effect relative to the screen
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.9f) // Restrict width to 90% of screen = Visible side margins
-                .fillMaxHeight(0.75f) // Restrict height = Visible top/bottom margins
+                .fillMaxWidth(0.95f) // Restrict width to 95% of screen (More space!)
+                .fillMaxHeight(0.85f) // Restrict height to 85% of screen (More space!)
                 .clip(RoundedCornerShape(24.dp))
                 .background(Color.Black) // Inner dark frame
                 .padding(4.dp), // Thin black border line
@@ -197,10 +197,11 @@ private fun SnakeBoard(
 
     // Removed watermark logic for cleanliness
     
+    // Aspect Ratio Enforced Box
     Box(
         modifier = Modifier
-            .fillMaxSize() // Fill the constrained container defined above
-            .clip(RoundedCornerShape(20.dp)) // Inner roundness
+            .aspectRatio(SnakeViewModel.GRID_COLS.toFloat() / SnakeViewModel.GRID_ROWS.toFloat())
+            .clip(RoundedCornerShape(20.dp))
             .background(boardColor1)
             .pointerInput(gameState) {
                  if (gameState == GameState.PLAYING) {
@@ -219,12 +220,20 @@ private fun SnakeBoard(
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val cellPx = size.width / SnakeViewModel.GRID_COLS
+            // Safe Cell Size Calculation (Min of Width/Height) to prevent overflow
+            val cellPx = kotlin.math.min(
+                size.width / SnakeViewModel.GRID_COLS, 
+                size.height / SnakeViewModel.GRID_ROWS
+            )
+            
+            // Center the grid
+            val offsetX = (size.width - (cellPx * SnakeViewModel.GRID_COLS)) / 2
+            val offsetY = (size.height - (cellPx * SnakeViewModel.GRID_ROWS)) / 2
+
             if (cellPx <= 1f) return@Canvas
 
-
-
-            // 1. Draw Checkerboard Background
+            translate(left = offsetX, top = offsetY) {
+                // 1. Draw Checkerboard Background
                 for (i in 0 until SnakeViewModel.GRID_COLS) {
                     for (j in 0 until SnakeViewModel.GRID_ROWS) {
                         if ((i + j) % 2 == 1) {
@@ -236,7 +245,7 @@ private fun SnakeBoard(
                         }
                     }
                 }
-
+                
                 // 2. Draw Food
                 val foodCenter = Offset((food.first * cellPx) + cellPx/2, (food.second * cellPx) + cellPx/2)
                 drawCircle(color = Color.Black.copy(alpha = 0.2f), radius = cellPx * 0.35f, center = Offset(foodCenter.x + 4f, foodCenter.y + 4f))
@@ -274,6 +283,7 @@ private fun SnakeBoard(
                     }
                 }
             }
+        }
 
         
         // Idle/Game Over Overlay (Simple Dim)
