@@ -143,6 +143,8 @@ fun App(
                         ) { 
                             com.thanhng224.app.feature.games.SnakeGameScreen(navController = navController)
                         }
+                        composable(
+                            route = Screen.MemoryGame.route,
                             arguments = listOf(
                                 navArgument("players") { type = NavType.IntType },
                                 navArgument("submode") { type = NavType.IntType },

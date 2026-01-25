@@ -92,6 +92,8 @@ fun FavoritesScreen(navController: NavController) {
                         currentFlow = DialogStep.DIFFICULTY 
                     }
                 )
+            }
+
             item {
                 GameCard(
                     title = "Memory de Nosotros", 
