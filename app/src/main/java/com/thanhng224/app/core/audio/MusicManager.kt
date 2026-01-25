@@ -39,6 +39,9 @@ class MusicManager @Inject constructor(
         R.raw.track_6,
         R.raw.track_7
     )
+    
+    // Shuffle logic: track available songs to avoid repeats until full cycle
+    private val availableTracks = mutableListOf<Int>()
 
     fun startMusic() {
         if (mediaPlayer == null) {
@@ -74,14 +77,18 @@ class MusicManager @Inject constructor(
     private fun playNextRandomTrack() {
         if (playlist.isEmpty()) return
         
-        // Simple random strategy: pick one at random
-        // Ideally we could avoid repeating the *exact* same one immediately, but simple is fine for now
-        var nextTrackResId = playlist.random()
-        
-        // Retry once if it picked the same track, just for variety
-        if (nextTrackResId == currentTrackResId && playlist.size > 1) {
-            nextTrackResId = playlist.random()
+        // Refill if empty
+        if (availableTracks.isEmpty()) {
+            availableTracks.addAll(playlist)
+            // Optional: Shuffle existing if we wanted a random order, 
+            // but random() selection below handles the randomness.
         }
+        
+        // Pick random from available
+        val nextTrackResId = availableTracks.random()
+        
+        // Remove from available so it doesn't repeat this cycle
+        availableTracks.remove(nextTrackResId)
         
         playTrack(nextTrackResId)
     }
