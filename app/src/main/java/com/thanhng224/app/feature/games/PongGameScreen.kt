@@ -12,11 +12,13 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Pause
@@ -41,7 +43,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -97,13 +98,15 @@ fun PongGameScreen(navController: NavController) {
     DisposableEffect(Unit) {
         val activity = context.findActivity()
         val window = activity?.window
-        val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         
         // 1. Force Landscape
         activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         
         // 2. Hide System Bars (Immersive Mode)
         if (window != null) {
+            // Ensure decor fits false (manual handling of insets/full screen)
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            
             val controller = WindowInsetsControllerCompat(window, window.decorView)
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -125,51 +128,8 @@ fun PongGameScreen(navController: NavController) {
             katBitmap = loadBitmapFromDrawable(context, "b_kat")
         }
     }
-    
-    // Side Selection Dialog (1P Only)
-    if (gameState == PongGameState.WAITING_FOR_SIDE) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { /* Force Choice */ },
-            title = { 
-                Text(
-                    "Elige tu Lado", 
-                    color = Color.Black, 
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxSize() 
-                ) 
-            },
-            text = { 
-                Text(
-                    "¿En qué lado quieres jugar?", 
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) 
-            },
-            confirmButton = {
-                androidx.compose.material3.Button(onClick = { 
-                    isSwapped = false // Right Side (Agus)
-                    gameState = PongGameState.COUNTDOWN
-                }) {
-                    Text("Lado Agus")
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.Button(onClick = { 
-                    isSwapped = true // Left Side (Kathy)
-                    gameState = PongGameState.COUNTDOWN
-                }) {
-                    Text("Lado Kathy")
-                }
-            },
-            containerColor = Color.White
-        )
-    }
 
     Scaffold(
-        // Hide TopBar in Playing/Paused mode to go fully immersive? 
-        // User asked for "todo sea pantalla". So we should hide the Scaffold TopBar during Game.
-        // We will implement a custom Pause button instead.
         containerColor = Color(0xFF1A1A2E) 
     ) { padding ->
         Box(
@@ -191,8 +151,55 @@ fun PongGameScreen(navController: NavController) {
             
             // --- UI OVERLAYS ---
             
-            // 1. Countdown Overlay
-            if (gameState == PongGameState.COUNTDOWN) {
+            // 1. SIDE SELECTION OVERLAY (Custom instead of AlertDialog)
+            if (gameState == PongGameState.WAITING_FOR_SIDE) {
+                 Box(
+                     modifier = Modifier
+                         .fillMaxSize()
+                         .background(Color.Black.copy(alpha=0.9f))
+                         .clickable(enabled = false) {}, // Block clicks
+                     contentAlignment = Alignment.Center
+                 ) {
+                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                         Text(
+                             text = "Elige tu Lado",
+                             color = Color.White,
+                             fontSize = 40.sp,
+                             fontWeight = FontWeight.Bold
+                         )
+                         Spacer(Modifier.height(40.dp))
+                         
+                         Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                             // Kathy Button (Left)
+                             Button(
+                                 onClick = { 
+                                     isSwapped = true // Left Side
+                                     gameState = PongGameState.COUNTDOWN
+                                 },
+                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63)),
+                                 modifier = Modifier.height(80.dp).width(200.dp)
+                             ) {
+                                 Text("Lado Kathy", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                             }
+                             
+                             // Agus Button (Right)
+                              Button(
+                                 onClick = { 
+                                     isSwapped = false // Right Side (Default)
+                                     gameState = PongGameState.COUNTDOWN
+                                 },
+                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                                 modifier = Modifier.height(80.dp).width(200.dp)
+                             ) {
+                                 Text("Lado Agus", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                             }
+                         }
+                     }
+                 }
+            }
+            
+            // 2. Countdown Overlay
+            else if (gameState == PongGameState.COUNTDOWN) {
                 var count by remember { mutableIntStateOf(3) }
                 LaunchedEffect(Unit) {
                     for (i in 3 downTo 1) {
@@ -211,7 +218,7 @@ fun PongGameScreen(navController: NavController) {
                     )
                 }
             } 
-            // 2. Pause Overlay
+            // 3. Pause Overlay
             else if (gameState == PongGameState.PAUSED) {
                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.7f)).clickable { /* Consume clicks */ }, contentAlignment = Alignment.Center) {
                      Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -242,7 +249,7 @@ fun PongGameScreen(navController: NavController) {
                      }
                 }
             }
-            // 3. Play Mode UI (Score + Pause Button)
+            // 4. Play Mode UI (Score + Pause Button)
             else {
                  val score1 = scores.first
                  val score2 = scores.second
@@ -258,7 +265,6 @@ fun PongGameScreen(navController: NavController) {
                  }
                  
                  // Pause Button (Top Center, Halfway UP)
-                 // "mitad mitad superior" -> Top Center
                  if (gameState == PongGameState.PLAYING) {
                      Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                          IconButton(
@@ -481,8 +487,6 @@ fun PongGameLoop(
                     val posOnMainAxis = if(isL) inputPos.x else inputPos.y
                     val isTouchingP1Zone = posOnMainAxis < (mainAxisSize / 2)
                     
-                    // Allow Dragging even when paused? No.
-                    // Allow Dragging in COUNTDOWN or PLAYING for positioning.
                     if (gameState == PongGameState.PLAYING || gameState == PongGameState.COUNTDOWN) { 
                         if (mode == 0) { // 2P
                             val deltaNorm = dragDelta / crossAxisSize
