@@ -92,7 +92,8 @@ fun SnakeGameScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF263238))
-            .padding(top = 16.dp, bottom = 32.dp), // General screen padding
+            .padding(paddingValues) // Apply Scaffold padding
+            .padding(top = 16.dp, bottom = 32.dp), // Additional internal padding
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
