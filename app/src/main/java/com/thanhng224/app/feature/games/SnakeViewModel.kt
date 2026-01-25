@@ -14,8 +14,7 @@ import javax.inject.Inject
 import kotlin.random.Random
 
 // Constants
-const val GRID_COLS = 15
-const val GRID_ROWS = 25
+
 
 enum class Direction { UP, DOWN, LEFT, RIGHT }
 enum class GameState { IDLE, PLAYING, GAMEOVER, WON }
@@ -25,6 +24,11 @@ typealias Point = Pair<Int, Int>
 class SnakeViewModel @Inject constructor(
     private val appPreferences: AppPreferences
 ) : ViewModel() {
+
+    companion object {
+        const val GRID_COLS = 15
+        const val GRID_ROWS = 25
+    }
 
     private val _gameState = MutableStateFlow(GameState.IDLE)
     val gameState = _gameState.asStateFlow()

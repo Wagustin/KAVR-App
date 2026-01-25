@@ -115,7 +115,7 @@ private fun SnakeBoard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(if(GRID_ROWS > 0) GRID_COLS.toFloat() / GRID_ROWS.toFloat() else 0.6f)
+            .aspectRatio(if(SnakeViewModel.GRID_ROWS > 0) SnakeViewModel.GRID_COLS.toFloat() / SnakeViewModel.GRID_ROWS.toFloat() else 0.6f)
             .padding(8.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(Color(0xFF81C784)) // Grass Green
@@ -136,13 +136,13 @@ private fun SnakeBoard(
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val cellPx = size.width / GRID_COLS
+            val cellPx = size.width / SnakeViewModel.GRID_COLS
             if (cellPx <= 1f) return@Canvas
 
             // Draw Grid Lines (Subtle)
             val gridColor = Color.White.copy(alpha=0.1f)
-            for (i in 0..GRID_COLS) drawLine(gridColor, Offset(i*cellPx, 0f), Offset(i*cellPx, size.height))
-            for (j in 0..GRID_ROWS) drawLine(gridColor, Offset(0f, j*cellPx), Offset(size.width, j*cellPx))
+            for (i in 0..SnakeViewModel.GRID_COLS) drawLine(gridColor, Offset(i*cellPx, 0f), Offset(i*cellPx, size.height))
+            for (j in 0..SnakeViewModel.GRID_ROWS) drawLine(gridColor, Offset(0f, j*cellPx), Offset(size.width, j*cellPx))
 
             // Draw Food
             drawCircle(
