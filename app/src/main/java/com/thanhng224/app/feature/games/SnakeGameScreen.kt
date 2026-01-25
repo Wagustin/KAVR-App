@@ -107,12 +107,14 @@ fun SnakeGameScreen(
         }
 
         // --- Tablero de Juego ---
+        SnakeBoard(
             gameState = gameState,
             snakeBody = snakeBody,
             food = food,
             currentDirection = viewModel.getCurrentDirection(),
             onDirectionChange = { viewModel.changeDirection(it) },
             onStartGame = { viewModel.startGame() }
+        )
     }
 
     // --- POPUP FINAL ---
@@ -126,7 +128,6 @@ fun SnakeGameScreen(
     }
 }
 
-@Composable
 @Composable
 private fun SnakeBoard(
     gameState: GameState,
