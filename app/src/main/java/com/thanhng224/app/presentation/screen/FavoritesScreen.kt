@@ -83,6 +83,17 @@ fun FavoritesScreen(navController: NavController) {
 
             item {
                 GameCard(
+                    title = "Snake Game 🐍", 
+                    description = "El clásico juego de la serpiente", 
+                    icon = Icons.Default.Gamepad, 
+                    color = Color(0xFF4CAF50),
+                    onClick = { 
+                        selectedGame = "SNAKE"
+                        currentFlow = DialogStep.DIFFICULTY 
+                    }
+                )
+            item {
+                GameCard(
                     title = "Memory de Nosotros", 
                     description = "Encuentra los pares", 
                     icon = Icons.Default.Favorite, 
@@ -276,7 +287,7 @@ fun FavoritesScreen(navController: NavController) {
                         "SOCCER" -> navController.navigate(Screen.SoccerGame.createRoute(difficulty))
                         "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(selectedMiniGolfMode, selectedMiniGolfSubMode, difficulty))
 
-                        "PONG" -> navController.navigate(Screen.PongGame.createRoute(selectedPongMode, difficulty))
+                        "SNAKE" -> navController.navigate(Screen.SnakeGame.createRoute(difficulty))
                         "NINJA" -> navController.navigate(Screen.NinjaGame.createRoute(selectedNinjaMode, difficulty)) 
                         // Ah wait, Ninja flow uses `selectedPongMode` var? No, I need to check how Ninja sets its mode. 
                         // Looking at lines 150-160 (not shown), Ninja probably sets `selectedPongMode` (reused) or `selectedPlayerMode`.

@@ -137,9 +137,12 @@ fun App(
                         
                         // CORRECCIÓN: Rutas de juegos con argumentos actualizados
 
-                        
                         composable(
-                            route = Screen.MemoryGame.route,
+                            route = Screen.SnakeGame.route,
+                            arguments = listOf(navArgument("difficulty") { type = NavType.IntType })
+                        ) { 
+                            com.thanhng224.app.feature.games.SnakeGameScreen(navController = navController)
+                        }
                             arguments = listOf(
                                 navArgument("players") { type = NavType.IntType },
                                 navArgument("submode") { type = NavType.IntType },
