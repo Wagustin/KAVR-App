@@ -71,44 +71,40 @@ fun SettingsScreen() {
     // ESTADOS (Mockup temporal hasta conectar persistencia real)
     // En el futuro, estos vendrán de un ViewModel/DataStore
     val memoryAchievements = listOf(
-        Achievement("Principiante", "Completa Fácil", false),
-        Achievement("Avanzado", "Completa Medio", false),
-        Achievement("Maestro", "Completa Difícil", false),
-        Achievement("Velocista", "Contra Reloj Difícil", false)
+        Achievement("Principiante", "Completa nivel Fácil", false),
+        Achievement("Avanzado", "Completa nivel Medio", false),
+        Achievement("Maestro", "Completa nivel Difícil", false),
+        Achievement("Velocista", "Gana en menos de 2 min", false)
     )
 
-
-
     val miniGolfAchievements = listOf(
-        Achievement("Hoyo en Uno", "Completa un nivel en 1 tiro", false),
+        Achievement("Hoyo en Uno", "Consigue un Hoyo en Uno", false),
         Achievement("Golfista Pro", "Completa los 3 niveles", false),
-        Achievement("Estratega", "Gana en modo Difícil", false)
+        Achievement("Estratega", "Completa el nivel 2", false)
     )
 
     val soccerAchievements = listOf(
-        Achievement("Goleador", "Anota 5 goles seguidos", false),
+        Achievement("Goleador", "Anota 3 goles", false),
         Achievement("Hat-Trick", "Anota 3 goles en una ronda", false),
-        Achievement("Imparable", "Puntuación perfecta (5/5)", false)
+        Achievement("Imparable", "Anota 5 goles en total", false)
     )
 
-
-
     val timerAchievements = listOf(
-        Achievement("Cronometrista", "Diferencia < 0.10s", false),
-        Achievement("Precisión Extrema", "Diferencia < 0.05s", false),
-        Achievement("Reloj Humano", "Gana 3 veces seguidas", false)
+        Achievement("Cronometrista", "Diferencia < 0.50s", false),
+        Achievement("Precisión", "Diferencia < 0.20s", false),
+        Achievement("Ganador", "Gana una partida", false)
     )
 
     val pongAchievements = listOf(
-        Achievement("Amor Eterno", "Juega 5 partidas con tu pareja", false),
-        Achievement("Peloteo Largo", "Rally > 20 golpes", false),
-        Achievement("Invencible", "Gana sin recibir puntos", false)
+        Achievement("Jugador", "Juega una partida", false),
+        Achievement("Peloteo", "Rally > 5 golpes", false),
+        Achievement("Invencible", "Gana una partida", false)
     )
 
     val ninjaAchievements = listOf(
-        Achievement("Sensei", "Acierta 10 veces seguidas", false),
-        Achievement("Ojo de Halcón", "No falles ningún tiro", false),
-        Achievement("Ninja Veloz", "Gana en < 30 segundos", false)
+        Achievement("Aprendiz", "Acierta 3 veces seguidas", false),
+        Achievement("Ojo de Halcón", "Acierta 5 veces seguidas", false),
+        Achievement("Ninja Veloz", "Gana en < 60 segundos", false)
     )
     
     val isDarkMode by appViewModel.isDarkMode.collectAsState()
@@ -353,7 +349,7 @@ fun MusicPlayerCard(viewModel: AppViewModel) {
     var currentPosition by remember { mutableIntStateOf(0) }
     var duration by remember { mutableIntStateOf(1) } // Avoid divide by zero
     var sliderPosition by remember { mutableFloatStateOf(0f) }
-    var volume by remember { mutableFloatStateOf(100f) } // 0..100
+    var volume by remember { mutableFloatStateOf(50f) } // 0..100
     var isDraggingSlider by remember { mutableStateOf(false) }
 
     // Polling for progress

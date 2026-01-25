@@ -24,6 +24,7 @@ class MusicManager @Inject constructor(
     // History for "Previous" functionality
     private val trackHistory = Stack<Int>()
     private var currentTrackResId: Int = -1
+    private var currentVolume = 0.5f
 
     // The intro track is mandatory first
     private val introResId = R.raw.intro
@@ -99,6 +100,8 @@ class MusicManager @Inject constructor(
                 else skipToNext() // Try another
                 return
             }
+            
+            mediaPlayer?.setVolume(currentVolume, currentVolume)
 
             mediaPlayer?.apply {
                 setOnCompletionListener {
@@ -141,6 +144,7 @@ class MusicManager @Inject constructor(
 
     fun setVolume(volume: Float) {
         // volume should be 0.0f to 1.0f
+        currentVolume = volume
         mediaPlayer?.setVolume(volume, volume)
     }
 
