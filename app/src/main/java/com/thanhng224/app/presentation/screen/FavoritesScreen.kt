@@ -105,7 +105,7 @@ fun FavoritesScreen(navController: NavController) {
             item {
                 GameCard(
                     title = "Reto Cronómetro ⏱️", 
-                    description = "¿Quién para en 5.00s?", 
+                    description = "Pon a prueba tu precisión", 
                     icon = Icons.Default.Timer, 
                     color = Color(0xFFFF9800),
                     onClick = { 

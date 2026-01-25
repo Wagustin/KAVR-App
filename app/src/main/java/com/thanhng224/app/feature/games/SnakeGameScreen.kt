@@ -2,8 +2,9 @@ package com.thanhng224.app.feature.games
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas as AndroidCanvas
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -151,30 +152,38 @@ private fun SnakeBoard(
     val context = LocalContext.current
     
     // --- LOAD HEAD ASSETS SAFELY ---
-    var headUp by remember { mutableStateOf<Bitmap?>(null) }
-    var headDown by remember { mutableStateOf<Bitmap?>(null) }
-    var headLeft by remember { mutableStateOf<Bitmap?>(null) }
-    var headRight by remember { mutableStateOf<Bitmap?>(null) }
+    var headUp by remember { mutableStateOf<ImageBitmap?>(null) }
+    var headDown by remember { mutableStateOf<ImageBitmap?>(null) }
+    var headLeft by remember { mutableStateOf<ImageBitmap?>(null) }
+    var headRight by remember { mutableStateOf<ImageBitmap?>(null) }
     
-    var headUpOpen by remember { mutableStateOf<Bitmap?>(null) }
-    var headDownOpen by remember { mutableStateOf<Bitmap?>(null) }
-    var headLeftOpen by remember { mutableStateOf<Bitmap?>(null) }
-    var headRightOpen by remember { mutableStateOf<Bitmap?>(null) }
+    var headUpOpen by remember { mutableStateOf<ImageBitmap?>(null) }
+    var headDownOpen by remember { mutableStateOf<ImageBitmap?>(null) }
+    var headLeftOpen by remember { mutableStateOf<ImageBitmap?>(null) }
+    var headRightOpen by remember { mutableStateOf<ImageBitmap?>(null) }
     
     LaunchedEffect(Unit) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            // Helper to load small bitmaps (cached)
-            fun load(name: String) = loadBitmapSafe(context, name, 128, 128)
-            
-            headUp = load("snake_head_up")
-            headDown = load("snake_head_down")
-            headLeft = load("snake_head_left")
-            headRight = load("snake_head_right")
-            
-            headUpOpen = load("snake_head_up_open")
-            headDownOpen = load("snake_head_down_open")
-            headLeftOpen = load("snake_head_left_open")
-            headRightOpen = load("snake_head_right_open")
+            try {
+                // Helper to load small bitmaps (cached) and convert to ImageBitmap
+                fun load(name: String): ImageBitmap? {
+                     return try {
+                         loadBitmapSafe(context, name, 128, 128)?.asImageBitmap()
+                     } catch (e: Throwable) { null }
+                }
+                
+                headUp = load("snake_head_up")
+                headDown = load("snake_head_down")
+                headLeft = load("snake_head_left")
+                headRight = load("snake_head_right")
+                
+                headUpOpen = load("snake_head_up_open")
+                headDownOpen = load("snake_head_down_open")
+                headLeftOpen = load("snake_head_left_open")
+                headRightOpen = load("snake_head_right_open")
+            } catch (e: Throwable) {
+                // Ignore all loading errors
+            }
         }
     }
 
@@ -231,11 +240,6 @@ private fun SnakeBoard(
             }
 
             // SNAKE
-            val textPaint = android.graphics.Paint().apply {
-                textSize = cellPx * 0.8f
-                textAlign = android.graphics.Paint.Align.CENTER
-            }
-
             snakeBody.asReversed().forEachIndexed { index, point ->
                 val isHead = index == snakeBody.lastIndex
                 val color = if (isHead) Color(0xFF1B5E20) else Color(0xFF2E7D32)
@@ -247,7 +251,7 @@ private fun SnakeBoard(
                     val dist = abs(point.first - food.first) + abs(point.second - food.second)
                     val isMouthOpen = dist <= 2
                     
-                    val bitmap = if (isMouthOpen) {
+                    val image = if (isMouthOpen) {
                         when(currentDirection) {
                             Direction.UP -> headUpOpen ?: headUp
                             Direction.DOWN -> headDownOpen ?: headDown
@@ -263,32 +267,27 @@ private fun SnakeBoard(
                         }
                     } ?: headDown // Fallback
                     
-                    if (bitmap != null) {
-                        drawIntoCanvas { canvas ->
+                    if (image != null) {
+                         try {
                             val boost = if (isMouthOpen) 1.15f else 1.0f
                             val baseScale = 3.2f 
                             val finalScale = baseScale * boost * eatingScale
-                            val w = cellPx * finalScale
-                            val h = cellPx * finalScale
+                            val w = (cellPx * finalScale).toInt()
+                            val h = (cellPx * finalScale).toInt()
                             val offX = (w - cellPx) / 2
                             val offY = (h - cellPx) / 2
                             
-                            val rect = androidx.compose.ui.geometry.Rect(
-                                left = topLeft.x - offX,
-                                top = topLeft.y - offY,
-                                right = topLeft.x - offX + w,
-                                bottom = topLeft.y - offY + h
+                            drawImage(
+                                image = image,
+                                dstOffset = androidx.compose.ui.unit.IntOffset(
+                                    (topLeft.x - offX).toInt(),
+                                    (topLeft.y - offY).toInt()
+                                ),
+                                dstSize = androidx.compose.ui.unit.IntSize(w, h)
                             )
-                            
-                            try {
-                                canvas.nativeCanvas.drawBitmap(
-                                    bitmap, null, 
-                                    android.graphics.Rect(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt()), 
-                                    null
-                                )
-                            } catch (e: Exception) {
-                                // Ignore draw error
-                            }
+                        } catch (e: Throwable) {
+                            // Fallback if drawing fails
+                            drawCircle(Color.Red, cellPx * 0.4f, center)
                         }
                     } else {
                         // Fallback Head
@@ -309,10 +308,15 @@ private fun SnakeBoard(
             }
 
             // FOOD
-            drawIntoCanvas { canvas ->
-                 val xPos = (food.first * cellPx) + (cellPx / 2)
-                 val yPos = (food.second * cellPx) + (cellPx / 2) - ((textPaint.descent() + textPaint.ascent()) / 2)
-                 canvas.nativeCanvas.drawText(foodEmoji, xPos, yPos, textPaint)
+            try {
+                drawIntoCanvas { canvas ->
+                     val xPos = (food.first * cellPx) + (cellPx / 2)
+                     val yPos = (food.second * cellPx) + (cellPx / 2) - ((textPaint.descent() + textPaint.ascent()) / 2)
+                     canvas.nativeCanvas.drawText(foodEmoji, xPos, yPos, textPaint)
+                }
+            } catch (e: Throwable) {
+                // Fallback food
+                drawCircle(Color.Red, cellPx * 0.4f, Offset((food.first * cellPx) + cellPx/2, (food.second * cellPx) + cellPx/2))
             }
         }
         

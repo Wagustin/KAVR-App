@@ -24,11 +24,8 @@ fun loadBitmapSafe(context: Context, name: String, w: Int, h: Int): Bitmap? {
         drawable.setBounds(0, 0, w, h)
         drawable.draw(canvas)
         bitmap
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         e.printStackTrace()
-        null
-    } catch (e: OutOfMemoryError) {
-        System.gc()
         null
     }
 }
