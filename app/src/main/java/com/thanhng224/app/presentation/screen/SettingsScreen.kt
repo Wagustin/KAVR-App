@@ -62,16 +62,12 @@ fun SettingsScreen() {
         Achievement("Velocista", "Contra Reloj Difícil", false)
     )
 
-    val snakeAchievements = listOf(
-        Achievement("Gusano", "Puntuación > 10", false),
-        Achievement("Serpiente", "Puntuación > 50", false),
-        Achievement("Anaconda", "Puntuación > 100", false)
-    )
+
 
     val miniGolfAchievements = listOf(
         Achievement("Hoyo en Uno", "Completa un nivel en 1 tiro", false),
         Achievement("Golfista Pro", "Completa los 3 niveles", false),
-        Achievement("Preciso", "Gana sin chocar paredes", false)
+        Achievement("Estratega", "Gana en modo Difícil", false)
     )
 
     val soccerAchievements = listOf(
@@ -84,7 +80,7 @@ fun SettingsScreen() {
 
     val timerAchievements = listOf(
         Achievement("Cronometrista", "Diferencia < 0.10s", false),
-        Achievement("Perfecto", "Diferencia exacta 0.00s", false),
+        Achievement("Precisión Extrema", "Diferencia < 0.05s", false),
         Achievement("Reloj Humano", "Gana 3 veces seguidas", false)
     )
 
@@ -162,14 +158,7 @@ fun SettingsScreen() {
                 )
             }
             
-            // Logros de Snake
-            item {
-                GameAchievementsCard(
-                    gameName = "Snake",
-                    color = Color(0xFF4CAF50), // Green
-                    achievements = snakeAchievements
-                )
-            }
+
 
             // Logros de Mini Golf
             item {

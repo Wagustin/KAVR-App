@@ -80,18 +80,7 @@ fun FavoritesScreen(navController: NavController) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
-                GameCard(
-                    title = "Snake Game 🐍", 
-                    description = "El clásico juego de la serpiente", 
-                    icon = Icons.Default.Gamepad, 
-                    color = Color(0xFF4CAF50),
-                    onClick = { 
-                        selectedGame = "SNAKE"
-                        currentFlow = DialogStep.DIFFICULTY 
-                    }
-                )
-            }
+
             item {
                 GameCard(
                     title = "Memory de Nosotros", 
@@ -286,7 +275,7 @@ fun FavoritesScreen(navController: NavController) {
                         "TIMER" -> navController.navigate(Screen.TimerGame.createRoute(selectedPlayerMode, difficulty))
                         "SOCCER" -> navController.navigate(Screen.SoccerGame.createRoute(difficulty))
                         "MINIGOLF" -> navController.navigate(Screen.MiniGolfGame.createRoute(selectedMiniGolfMode, selectedMiniGolfSubMode, difficulty))
-                        "SNAKE" -> navController.navigate(Screen.SnakeGame.createRoute(difficulty))
+
                         "PONG" -> navController.navigate(Screen.PongGame.createRoute(selectedPongMode, difficulty))
                         "NINJA" -> navController.navigate(Screen.NinjaGame.createRoute(selectedNinjaMode, difficulty)) 
                         // Ah wait, Ninja flow uses `selectedPongMode` var? No, I need to check how Ninja sets its mode. 
