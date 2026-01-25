@@ -240,6 +240,11 @@ private fun SnakeBoard(
             }
 
             // SNAKE
+            val textPaint = android.graphics.Paint().apply {
+                textSize = cellPx * 0.8f
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+
             snakeBody.asReversed().forEachIndexed { index, point ->
                 val isHead = index == snakeBody.lastIndex
                 val color = if (isHead) Color(0xFF1B5E20) else Color(0xFF2E7D32)
