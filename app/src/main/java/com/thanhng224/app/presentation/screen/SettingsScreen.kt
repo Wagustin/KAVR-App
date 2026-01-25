@@ -44,8 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -159,7 +158,7 @@ fun SettingsScreen() {
 
             // --- SECCIÓN 1.5: REPRODUCTOR DE MÚSICA ---
             item {
-                SectionHeader("Reproductor de Música", androidx.compose.material.icons.filled.MusicNote)
+                SectionHeader("Reproductor de Música", Icons.Default.MusicNote)
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 MusicPlayerCard(appViewModel)
