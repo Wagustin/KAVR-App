@@ -151,6 +151,7 @@ fun SnakeGameScreen(
             dismissButton = { TextButton(onClick = { navController.popBackStack() }) { Text("Salir") } }
         )
     }
+    }
 }
 
 @Composable
