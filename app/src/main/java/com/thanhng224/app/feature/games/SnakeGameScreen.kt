@@ -93,9 +93,9 @@ fun SnakeGameScreen(
             .fillMaxSize()
             .background(Color(0xFF263238))
             .padding(paddingValues) // Apply Scaffold padding
-            .padding(top = 16.dp, bottom = 32.dp), // Additional internal padding
+            .padding(16.dp), // Uniform smaller padding
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp) // Reduced spacing
     ) {
         // Score Component
         ScoreCard(viewModel)
@@ -104,8 +104,7 @@ fun SnakeGameScreen(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp), // Side padding for the board
+                .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             SnakeBoardContainer(viewModel)
@@ -140,14 +139,14 @@ private fun ScoreCard(viewModel: SnakeViewModel) {
     
     androidx.compose.material3.Card(
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.3f)),
-        modifier = Modifier.padding(bottom = 24.dp)
+        // Removed explicit bottom padding, relying on parent arrangement
     ) {
         Text(
             text = "SCORE: $score",
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Black,
+            style = MaterialTheme.typography.headlineMedium, // Smaller than displaySmall
+            fontWeight = FontWeight.Bold,
             color = Color(0xFFFFD700),
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp) // Smaller padding
         )
     }
 }
