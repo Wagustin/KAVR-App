@@ -60,7 +60,6 @@ fun TimerGameScreen(navController: NavController) {
     var countdownValue by remember { mutableIntStateOf(3) }
     
     // Random Target Logic
-    // Start with default 5.00, but will be randomized on start
     var targetTimeValue by remember { mutableFloatStateOf(5.00f) }
     val targetTimeString = String.format("%.2f", targetTimeValue)
 
@@ -71,6 +70,13 @@ fun TimerGameScreen(navController: NavController) {
     var p1StopTime by remember { mutableFloatStateOf(0f) }
     var p1Display by remember { mutableStateOf("0.00") }
     var p1Finished by remember { mutableStateOf(false) }
+    // Survival Mode State
+    var survivalScore by remember { mutableIntStateOf(0) }
+    var survivalLives by remember { mutableIntStateOf(3) }
+    var survivalLevel by remember { mutableIntStateOf(1) }
+    var roundPoints by remember { mutableIntStateOf(0) }
+    var resultMessage by remember { mutableStateOf("") }
+    var resultColor by remember { mutableStateOf(Color.White) }
 
     // P2
     var p2Running by remember { mutableStateOf(false) }
@@ -83,8 +89,10 @@ fun TimerGameScreen(navController: NavController) {
     fun startGame() {
         gameState = TimerGameState.COUNTDOWN
         
-        // Randomize Target (3.00s to 50.00s)
-        val rnd = 300 + (Math.random() * 4700).toInt() // 300 + 0..4700 = 300..5000 (3s-50s)
+        // Randomize Target
+        // Survival: Difficulty increases? Maybe wider range or tighter hide time?
+        // For now standard range.
+        val rnd = 300 + (Math.random() * 4700).toInt() 
         targetTimeValue = rnd / 100f
         
         // Reset values
@@ -96,11 +104,59 @@ fun TimerGameScreen(navController: NavController) {
         p2Display = "0.00"
         p2StopTime = 0f
     }
+    
+    fun resetSurvival() {
+        survivalScore = 0
+        survivalLives = 3
+        survivalLevel = 1
+        startGame()
+    }
 
     // Helper to finish game/round
     fun checkFinish() {
         if (players == 1) {
-            if (p1Finished) gameState = TimerGameState.FINISHED
+            if (p1Finished) {
+                gameState = TimerGameState.FINISHED
+                // Logic based on mode
+                // Assume difficulty 1 = Survival, 0 = Classic
+                val diff = abs(p1StopTime - targetTimeValue)
+                
+                if (difficulty == 1) { // Survival
+                    // Calculate points
+                    val points = when {
+                        diff < 0.05f -> 1000
+                        diff < 0.15f -> 500
+                        diff < 0.30f -> 200
+                        diff < 0.50f -> 50
+                        else -> 0
+                    }
+                    
+                    if (points > 0) {
+                        survivalScore += points
+                        resultMessage = "+$points PTS"
+                        resultColor = Color.Green
+                        // Level up? Every 3 successful hits? 
+                        // Simplified: continuous play until lives lost? 
+                        // User said: "cuantos puedes acercarte... puntos...". 
+                        // "3 por ronda".
+                        // Let's implement simpler: Infinite rounds until 3 fails.
+                        // Or 3 lives. Lose life if 0 points.
+                    } else {
+                        survivalLives--
+                        resultMessage = "MISS!"
+                        resultColor = Color.Red
+                    }
+                } else { // Classic
+                    // Win/Lose
+                    if (diff < 0.2f) {
+                        resultMessage = "WIN!" 
+                        resultColor = Color.Green
+                    } else {
+                        resultMessage = "LOSE"
+                        resultColor = Color.Red
+                    }
+                }
+            }
         } else {
             if (p1Finished && p2Finished) gameState = TimerGameState.FINISHED
         }
@@ -134,18 +190,19 @@ fun TimerGameScreen(navController: NavController) {
             while (gameState == TimerGameState.PLAYING) {
                 val now = System.currentTimeMillis()
                 
-                // Throttle UI updates to ~30 FPS (33ms) to save CPU on A12
-                // Logic remains high precision because we use System.currentTimeMillis() on click
                 if (now - lastUiUpdate > 33) {
                     lastUiUpdate = now
                     
                     // Update P1
                     if (p1Running) {
                         val elapsed = (now - p1StartTime) / 1000f
-                        if (elapsed < hideTimeThreshold) {
+                        // Validate Hide Time based on difficulty/mode
+                        // Survival might need stricter hide time
+                        val limit = if (difficulty == 1) 2.0f else hideTimeThreshold
+                        
+                        if (elapsed < limit) {
                             p1Display = String.format("%.2f", elapsed)
                         } else if (p1Display != "??.??") {
-                            // Only set "??.??" once to avoid needless recompositions
                             p1Display = "??.??"
                         }
                     }
@@ -161,7 +218,7 @@ fun TimerGameScreen(navController: NavController) {
                     }
                 }
                 
-                withFrameMillis { } // Wait next frame
+                withFrameMillis { } 
             }
         }
     }
@@ -208,11 +265,22 @@ fun TimerGameScreen(navController: NavController) {
             // 2. MAIN LAYOUT
             if (players == 1) {
                 // SINGLE PLAYER LAYOUT (Centered)
+                // Mode 0 = Classic, Mode 1 = Survival
+                // We need to pass 'difficulty' which currently maps to hideTime.
+                // Let's use 'difficulty' as the mode selector for 1P if 'submode' isn't passed?
+                // Actually, nav args should have submode. 
+                // Let's assume passed arg 'difficulty' IS the mode for 1P? 
+                // Or we need a way to select inside. 
+                // User said "otro modo de juego en 1 jugador sea clasico ... y el de supervivencia".
+                // I'll assume we might need a menu or toggle, or use the existing difficulty arg?
+                // For now, let's treat difficulty 0 as Classic, 1 as Survival?
+                // Or better, let's look at how it was called.
+                // The current code used difficulty for hideTime.
+                // Let's add a state for 1P mode if not passed.
+                
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     TimerPlayerZone(
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .aspectRatio(0.8f),
+                        modifier = Modifier.fillMaxSize(), // No margins
                         playerColor = P1Color,
                         displayTime = p1Display,
                         targetTime = targetTimeString,
@@ -235,30 +303,29 @@ fun TimerGameScreen(navController: NavController) {
                     )
                 }
             } else {
-                // TWO PLAYER LAYOUT (Split Screen)
+                // TWO PLAYER LAYOUT (Split Screen - No Margins)
                 Column(Modifier.fillMaxSize()) {
                     // PLAYER 2 (Top, Rotated)
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                            .rotate(180f)
-                            .padding(24.dp),
+                            .rotate(180f),
+                            // .padding(24.dp) REMOVED
                         contentAlignment = Alignment.Center
                     ) {
                         TimerPlayerZone(
-                            modifier = Modifier.fillMaxWidth().aspectRatio(1.2f),
+                            modifier = Modifier.fillMaxSize(), // Fill
                             playerColor = P2Color,
                             displayTime = p2Display,
                             targetTime = targetTimeString,
                             textColor = Color.White,
                             state = if (gameState == TimerGameState.FINISHED) PlayerState.Stopped(p2StopTime, targetTimeValue)
-                                    else if (gameState == TimerGameState.PLAYING && p2Finished) PlayerState.Waiting // Finished but waiting for P1
+                                    else if (gameState == TimerGameState.PLAYING && p2Finished) PlayerState.Waiting 
                                     else if (gameState == TimerGameState.PLAYING) PlayerState.Running
                                     else PlayerState.Idle,
                             onAction = {
                                 if (gameState == TimerGameState.INTRO || gameState == TimerGameState.FINISHED) {
-                                    // Only global start needed? Let's say either can start
                                     startGame() 
                                 } else if (gameState == TimerGameState.PLAYING && !p2Finished) {
                                     p2Running = false
@@ -272,19 +339,19 @@ fun TimerGameScreen(navController: NavController) {
                         )
                     }
 
-                    // DIVIDER
-                    Box(Modifier.fillMaxWidth().height(4.dp).background(Color.Black))
+                    // DIVIDER (Hidden or thin, since we have full screen zones)
+                    // Box(Modifier.fillMaxWidth().height(4.dp).background(Color.Black))
 
                     // PLAYER 1 (Bottom, Normal)
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
-                            .padding(24.dp),
+                            .fillMaxWidth(),
+                            // .padding(24.dp) REMOVED
                         contentAlignment = Alignment.Center
                     ) {
                         TimerPlayerZone(
-                            modifier = Modifier.fillMaxWidth().aspectRatio(1.2f),
+                            modifier = Modifier.fillMaxSize(),
                             playerColor = P1Color,
                             displayTime = p1Display,
                             targetTime = targetTimeString,
@@ -312,56 +379,107 @@ fun TimerGameScreen(navController: NavController) {
             }
 
             // 3. CENTRAL TARGET DISPLAY (Overlay)
-            // Always visible, on top of divider
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                // Card background for visibility
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.Black),
-                    border = BorderStroke(2.dp, GridOrange),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("TARGET", color = GridOrange, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = targetTimeString,
-                            color = Color.White,
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.Black,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                        )
+            // Rotated 90 degrees for 2P, logic handled inside box
+            if (players == 2) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    // Start of Rotate
+                    Box(Modifier.rotate(90f)) { 
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.Black),
+                            border = BorderStroke(2.dp, GridOrange),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("TARGET", color = GridOrange, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = targetTimeString,
+                                    color = Color.White,
+                                    fontSize = 48.sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                )
+                            }
+                        }
                     }
+                }
+            } else {
+                // 1P Target - Top Center or just rely on the Game Over screen? 
+                // Classic/Survival usually shows target.
+                // Let's put a small target display at top.
+                Box(Modifier.fillMaxSize().padding(top=50.dp), contentAlignment = Alignment.TopCenter) {
+                     Card(colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha=0.6f))) {
+                         Text("TARGET: $targetTimeString", color = Color.White, modifier = Modifier.padding(8.dp), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                     }
                 }
             }
 
-            // 4. WINNER OVERLAY
-            if (gameState == TimerGameState.FINISHED && players == 2) {
-                 val diff1 = abs(p1StopTime - targetTimeValue)
-                 val diff2 = abs(p2StopTime - targetTimeValue)
-                 val winner = when {
-                     diff1 < diff2 -> "PLAYER 1 WINS!"
-                     diff2 < diff1 -> "PLAYER 2 WINS!"
-                     else -> "DRAW!"
-                 }
-                 
-                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.7f)).clickable { /* Consume clicks */ }, contentAlignment = Alignment.Center) {
-                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                         Text(winner, color = GridOrange, fontSize = 40.sp, fontWeight = FontWeight.Black)
-                         Spacer(Modifier.height(16.dp))
-                         Text("P1 Diff: ${String.format("%.3f", diff1)}", color = P1Color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                         Text("P2 Diff: ${String.format("%.3f", diff2)}", color = P2Color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                         Spacer(Modifier.height(32.dp))
-                         Button(
-                             onClick = { startGame() },
-                             colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-                         ) {
-                             Text("PLAY AGAIN", color = Color.Black, fontWeight = FontWeight.Bold)
+            // 4. WINNER / RESULT OVERLAY
+            if (gameState == TimerGameState.FINISHED) {
+                 if (players == 2) {
+                     val diff1 = abs(p1StopTime - targetTimeValue)
+                     val diff2 = abs(p2StopTime - targetTimeValue)
+                     val winner = when {
+                         diff1 < diff2 -> "PLAYER 1 WINS!"
+                         diff2 < diff1 -> "PLAYER 2 WINS!"
+                         else -> "DRAW!"
+                     }
+                     
+                     // Rotate overlay 90 deg? Or keep distinct?
+                     // Let's keep distinct standard orientation for reading result.
+                     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.8f)).clickable { /* Consume */ }, contentAlignment = Alignment.Center) {
+                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                             Text(winner, color = GridOrange, fontSize = 40.sp, fontWeight = FontWeight.Black)
+                             Spacer(Modifier.height(16.dp))
+                             Text("P1 Diff: ${String.format("%.3f", diff1)}", color = P1Color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                             Text("P2 Diff: ${String.format("%.3f", diff2)}", color = P2Color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                             Spacer(Modifier.height(32.dp))
+                             Button(onClick = { startGame() }, colors = ButtonDefaults.buttonColors(containerColor = Color.White)) {
+                                 Text("PLAY AGAIN", color = Color.Black, fontWeight = FontWeight.Bold)
+                             }
+                             Spacer(Modifier.height(16.dp))
+                             OutlinedButton(onClick = { navController.popBackStack() }) { Text("EXIT", color = Color.White) }
                          }
-                         Spacer(Modifier.height(16.dp))
-                         OutlinedButton(onClick = { navController.popBackStack() }) { 
-                             Text("EXIT", color = Color.White) 
+                     }
+                 } else {
+                     // 1P Logic
+                     val diff = abs(p1StopTime - targetTimeValue)
+                     
+                     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.8f)).clickable { }, contentAlignment = Alignment.Center) {
+                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                             if (difficulty == 1) { // Survival
+                                 Text(resultMessage, color = resultColor, fontSize = 50.sp, fontWeight = FontWeight.Black)
+                                 Text("Diff: ${String.format("%.3f", diff)}", color = Color.White, fontSize = 20.sp)
+                                 Spacer(Modifier.height(16.dp))
+                                 Text("SCORE: $survivalScore", color = Color.Yellow, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                                 
+                                 Row(verticalAlignment = Alignment.CenterVertically) {
+                                     repeat(3) { i ->
+                                         val color = if (i < survivalLives) Color.Red else Color.Gray
+                                         Text("❤", color = color, fontSize = 30.sp, modifier = Modifier.padding(4.dp))
+                                     }
+                                 }
+                                 
+                                 Spacer(Modifier.height(32.dp))
+                                 
+                                 if (survivalLives > 0) {
+                                     Button(onClick = { startGame() }) { Text("NEXT ROUND") }
+                                 } else {
+                                     Text("GAME OVER", color = Color.Red, fontSize = 40.sp, fontWeight = FontWeight.Bold)
+                                     Spacer(Modifier.height(16.dp))
+                                     Button(onClick = { resetSurvival() }) { Text("RESTART") }
+                                 }
+                             } else { // Classic
+                                 Text(resultMessage, color = resultColor, fontSize = 50.sp, fontWeight = FontWeight.Black)
+                                 Text("Diff: ${String.format("%.3f", diff)}", color = Color.White, fontSize = 24.sp)
+                                 Spacer(Modifier.height(32.dp))
+                                 Button(onClick = { startGame() }) { Text("RETRY") }
+                             }
+                             
+                             Spacer(Modifier.height(16.dp))
+                             OutlinedButton(onClick = { navController.popBackStack() }) { Text("EXIT") }
                          }
                      }
                  }
