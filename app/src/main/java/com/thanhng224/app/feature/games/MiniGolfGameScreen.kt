@@ -436,11 +436,14 @@ fun MiniGolfGameScreen(navController: NavController) {
                     }
                 },
                 actions = {
-                    Text("Golpes: $p1Strokes", modifier = Modifier.padding(end=16.dp), fontWeight = FontWeight.Bold)
+                actions = {
+                    val currentStrokes = if (mode == MODE_2P && currentPlayer == 2) p2Strokes else p1Strokes
+                    val label = if (mode == MODE_2P) "P$currentPlayer: $currentStrokes" else "Golpes: $currentStrokes"
+                    Text(label, modifier = Modifier.padding(end=16.dp), fontWeight = FontWeight.Bold)
                     IconButton(onClick = { 
                          resetBall()
                          // Penalty
-                         p1Strokes++
+                         if (mode == MODE_2P && currentPlayer == 2) p2Strokes++ else p1Strokes++
                     }) {
                         Icon(Icons.Default.Refresh, contentDescription = "R")
                     }

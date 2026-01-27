@@ -310,7 +310,66 @@ fun TimerGameScreen(navController: NavController) {
                 }
             }
 
-            // 3. COUNTDOWN OVERLAY (Last -> Top)
+                }
+            }
+
+            // 3. CENTRAL TARGET DISPLAY (Overlay)
+            // Always visible, on top of divider
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                // Card background for visibility
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.Black),
+                    border = BorderStroke(2.dp, GridOrange),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("TARGET", color = GridOrange, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = targetTimeString,
+                            color = Color.White,
+                            fontSize = 48.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+
+            // 4. WINNER OVERLAY
+            if (gameState == TimerGameState.FINISHED && players == 2) {
+                 val diff1 = abs(p1StopTime - targetTimeValue)
+                 val diff2 = abs(p2StopTime - targetTimeValue)
+                 val winner = when {
+                     diff1 < diff2 -> "PLAYER 1 WINS!"
+                     diff2 < diff1 -> "PLAYER 2 WINS!"
+                     else -> "DRAW!"
+                 }
+                 
+                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.7f)).clickable { /* Consume clicks */ }, contentAlignment = Alignment.Center) {
+                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                         Text(winner, color = GridOrange, fontSize = 40.sp, fontWeight = FontWeight.Black)
+                         Spacer(Modifier.height(16.dp))
+                         Text("P1 Diff: ${String.format("%.3f", diff1)}", color = P1Color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                         Text("P2 Diff: ${String.format("%.3f", diff2)}", color = P2Color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                         Spacer(Modifier.height(32.dp))
+                         Button(
+                             onClick = { startGame() },
+                             colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                         ) {
+                             Text("PLAY AGAIN", color = Color.Black, fontWeight = FontWeight.Bold)
+                         }
+                         Spacer(Modifier.height(16.dp))
+                         OutlinedButton(onClick = { navController.popBackStack() }) { 
+                             Text("EXIT", color = Color.White) 
+                         }
+                     }
+                 }
+            }
+
+            // 5. COUNTDOWN OVERLAY (Last -> Top)
             if (gameState == TimerGameState.COUNTDOWN) {
                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) {
                     Text(
@@ -413,7 +472,8 @@ fun TimerPlayerZone(
                     letterSpacing = 2.sp
                 )
                 
-                // Small Label
+                // Small Label - Removed from here as it is now central
+                /*
                 Text(
                     text = "TARGET: $targetTime",
                     color = Color.Gray,
@@ -421,6 +481,7 @@ fun TimerPlayerZone(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
                 )
+                */
             }
             
             // 2. RESULT MESSAGE (Overlay Logic)

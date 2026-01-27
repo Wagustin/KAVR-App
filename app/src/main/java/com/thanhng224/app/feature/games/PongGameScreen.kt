@@ -471,27 +471,45 @@ fun PongGameLoop(
             .fillMaxSize()
             .onSizeChanged { canvasSize = it }
             .pointerInput(Unit) {
-                detectDragGestures { change, dragAmount ->
-                    val w = size.width
-                    val h = size.height
-                    val isL = w > h
-                    val crossAxisSize = if(isL) h else w
-                    val inputPos = change.position
-                    val dragDelta = if(isL) dragAmount.y else dragAmount.x
-                    val mainAxisSize = if(isL) w else h
-                    val posOnMainAxis = if(isL) inputPos.x else inputPos.y
-                    val isTouchingP1Zone = posOnMainAxis < (mainAxisSize / 2)
-                    
-                    if (gameState == PongGameState.PLAYING || gameState == PongGameState.COUNTDOWN) { 
-                        if (mode == 0) { // 2P
-                            val deltaNorm = dragDelta / crossAxisSize
-                            if (isTouchingP1Zone) p1Pos = (p1Pos + deltaNorm).coerceIn(0f, 1f)
-                            else p2Pos = (p2Pos + deltaNorm).coerceIn(0f, 1f)
-                        } else { // 1P
-                            val userIsP1 = isSwapped
-                            val deltaNorm = dragDelta / crossAxisSize
-                            if (userIsP1) p1Pos = (p1Pos + deltaNorm).coerceIn(0f, 1f)
-                            else p2Pos = (p2Pos + deltaNorm).coerceIn(0f, 1f)
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val w = size.width
+                        val h = size.height
+                        val isL = w > h
+                        val crossAxisSize = if(isL) h else w
+                        val mainAxisSize = if(isL) w else h
+                        
+                        // We track all active pointers
+                        event.changes.forEach { change ->
+                            if (change.pressed) {
+                                val inputPos = change.position
+                                val posOnMainAxis = if(isL) inputPos.x else inputPos.y
+                                val isTouchingP1Zone = posOnMainAxis < (mainAxisSize / 2)
+                                
+                                // Calculate absolute position on the track (0.0 to 1.0)
+                                val posOnCrossAxis = if(isL) inputPos.y else inputPos.x
+                                val targetPos = (posOnCrossAxis / crossAxisSize).coerceIn(0f, 1f)
+
+                                if (gameState == PongGameState.PLAYING || gameState == PongGameState.COUNTDOWN) { 
+                                    if (mode == 0) { // 2P
+                                        // Absolute positioning is better for multi-touch than relative drag
+                                        // or we can implement relative drag per pointer if preferred.
+                                        // Given the issue "not refined", absolute following finger is often smoother for pong on touch.
+                                        // But original was drag. Let's stick to drag or hybrid?
+                                        // Actually, distinct touches usually imply absolute control or relative pad.
+                                        // Let's try absolute tracking of the finger on the paddle axis for responsiveness.
+                                        
+                                        if (isTouchingP1Zone) p1Pos = targetPos
+                                        else p2Pos = targetPos
+                                    } else { // 1P
+                                        val userIsP1 = isSwapped
+                                        // In 1P, user controls their side.
+                                        if (userIsP1 && isTouchingP1Zone) p1Pos = targetPos
+                                        else if (!userIsP1 && !isTouchingP1Zone) p2Pos = targetPos
+                                    }
+                                }
+                            }
                         }
                     }
                 }

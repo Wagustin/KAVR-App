@@ -107,30 +107,18 @@ fun NinjaGameScreen(navController: NavController) {
                              k.distance -= THROW_SPEED
                              if (k.distance <= TARGET_RADIUS_DP * 3) { 
                                      // Collision logic
-                                     // In 1P (mode 1), check collision with ANY stuck knife
-                                     // In 2P (mode 0), only own rebound?
-                                     
-                                     // We need accurate angle calculation
                                      val hitAngle = (PI/2).toFloat() - targetRotation
                                      
-                                     // NORMALIZE ANGLES to 0..2PI
-                                     val normLength = (TARGET_RADIUS_DP * 3 * PI * 2).toFloat() // Circumference approx
-                                     
                                      // Check collision
-                                     var collided = false
-                                     if (mode == 1) {
-                                         // Survival: Rebound = Game Over
-                                         if (checkCollision(hitAngle, knives, collisionThreshold)) collided = true
-                                     } else {
-                                         // Versus: Just bounce off
-                                         // (Simplified for now)
-                                     }
-                                     
-                                     if (collided) {
+                                     if (checkCollision(hitAngle, knives, collisionThreshold)) {
                                          k.state = KnifeState.REBOUND
-                                         if (mode == 1) {
-                                             gameOver = true
-                                         }
+                                         gameOver = true
+                                         // In Versus, if P1 hits a knife, P1 loses -> P2 Wins
+                                         // We can represent this by NOT incrementing P1 score or even decrementing?
+                                         // Or better: Show Game Over dialog indicating P2 won.
+                                         // For now, let's keep score as "Rounds Won".
+                                         // So if P1 crashes, P2 gets a point.
+                                         if (mode == 0) scores = scores.copy(first = scores.first + 1)
                                      } else {
                                          k.state = KnifeState.STUCK
                                          k.distance = TARGET_RADIUS_DP * 3 
@@ -145,19 +133,23 @@ fun NinjaGameScreen(navController: NavController) {
                                      }
                              }
                         } else { // Top Player (Only in Mode 0)
-                             k.distance += THROW_SPEED // FIX: Was -= (bug)
-                             // dist starts negative (-800), moves to 0. 
-                             // Frame 1: -800 + 30 = -770. Correct. Approaching 0.
+                             k.distance += THROW_SPEED 
                              
                              if (k.distance >= -TARGET_RADIUS_DP * 3) {
                                   // Top Hit Logic
-                                  // Hit Angle (Top is 3PI/2 270 deg)
                                   val hitAngle = (3 * PI / 2).toFloat() - targetRotation
                                   
-                                  k.state = KnifeState.STUCK
-                                  k.distance = -TARGET_RADIUS_DP * 3
-                                  k.angle = hitAngle
-                                  scores = scores.copy(first = scores.first + 1)
+                                  if (checkCollision(hitAngle, knives, collisionThreshold)) {
+                                      k.state = KnifeState.REBOUND
+                                      gameOver = true
+                                      // P2 crashed -> P1 wins point
+                                      scores = scores.copy(second = scores.second + 1)
+                                  } else {
+                                      k.state = KnifeState.STUCK
+                                      k.distance = -TARGET_RADIUS_DP * 3
+                                      k.angle = hitAngle
+                                      scores = scores.copy(first = scores.first + 1)
+                                  }
                              }
                         }
                     } else if (k.state == KnifeState.REBOUND) {
@@ -245,7 +237,24 @@ fun NinjaGameScreen(navController: NavController) {
                             .weight(1f)
                             .fillMaxSize()
                             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                                knives.add(Knife(distance = 800f, angle = 0f, owner = 0))
+                                if (gameOver) {
+                                    // Reset Round
+                                    knives.clear()
+                                    // scores = 0 to 0 // Keep scores for "Matches"? Or reset? 
+                                    // User likely wants "Round Logic", so keep scores?
+                                    // But currently scores tracked knives stuck.
+                                    // Let's reset knives only. But stuck knives ARE the score visually.
+                                    // So we must clear knives.
+                                    // If we want to track "Wins", we need a separate state.
+                                    // For simplicity: Reset completely for now, as asked "don't lose".
+                                    // Wait, user said "don't lose". implies they can't die. 
+                                    // Now they can die. 
+                                    // Let's reset game state.
+                                    knives.clear()
+                                    gameOver = false
+                                } else {
+                                    knives.add(Knife(distance = 800f, angle = 0f, owner = 0))
+                                }
                             }
                     ) {
                          Text("${scores.second}", fontSize = 60.sp, color = Color.White, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom=50.dp), fontWeight = FontWeight.Bold)
@@ -307,9 +316,17 @@ fun NinjaGameScreen(navController: NavController) {
                      if (gameOver) {
                          Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.6f)), contentAlignment = Alignment.Center) {
                              Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                 Text("GAME OVER", fontSize = 50.sp, color = Color.Red, fontWeight = FontWeight.Bold)
-                                 Text("Score: ${scores.second}", fontSize = 30.sp, color = Color.White)
-                                 Text("High Score: $localHighScore", fontSize = 20.sp, color = Color.Yellow)
+                                 if (mode == 1) {
+                                     Text("GAME OVER", fontSize = 50.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                                     Text("Score: ${scores.second}", fontSize = 30.sp, color = Color.White)
+                                     Text("High Score: $localHighScore", fontSize = 20.sp, color = Color.Yellow)
+                                 } else {
+                                     // Versus Outcome - We check who has more points/knives or who didn't crash?
+                                     // Logic: The collision logic GAVE the point to the survivor.
+                                     // So we just show the current score or "P1/P2 Wins Round".
+                                     Text("ROUND OVER", fontSize = 50.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                                     Text("Top: ${scores.first} - Bot: ${scores.second}", fontSize = 30.sp, color = Color.White)
+                                 }
                                  Text("Tap to Retry", fontSize = 20.sp, color = Color.Gray)
                              }
                          }
