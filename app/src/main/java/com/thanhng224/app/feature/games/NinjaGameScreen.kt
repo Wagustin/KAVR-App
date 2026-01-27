@@ -333,9 +333,10 @@ fun NinjaGameScreen(navController: NavController) {
                                 scores = localHighScore to 0
                                 rotationSpeed = baseSpeed
                             } else {
-                                // In Versus, maybe we don't reset scores? 
-                                // User asked for "Round Over" logic basically.
-                                // Preserving score accumulation logic from game loop
+                                // Versus Mode: Reset round score (knives count)
+                                // If we wanted to track "Wins", we'd need a separate state, but 
+                                // for now, "score" is knives stuck, so it must reset.
+                                scores = 0 to 0
                             }
                             gameOver = false
                         },
