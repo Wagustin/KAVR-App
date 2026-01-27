@@ -476,37 +476,35 @@ fun PongGameLoop(
                         val event = awaitPointerEvent()
                         val w = size.width
                         val h = size.height
-                        val isL = w > h
-                        val crossAxisSize = if(isL) h else w
-                        val mainAxisSize = if(isL) w else h
                         
-                        // We track all active pointers
-                        event.changes.forEach { change ->
-                            if (change.pressed) {
-                                val inputPos = change.position
-                                val posOnMainAxis = if(isL) inputPos.x else inputPos.y
-                                val isTouchingP1Zone = posOnMainAxis < (mainAxisSize / 2)
-                                
-                                // Calculate absolute position on the track (0.0 to 1.0)
-                                val posOnCrossAxis = if(isL) inputPos.y else inputPos.x
-                                val targetPos = (posOnCrossAxis / crossAxisSize).coerceIn(0f, 1f)
-
-                                if (gameState == PongGameState.PLAYING || gameState == PongGameState.COUNTDOWN) { 
-                                    if (mode == 0) { // 2P
-                                        // Absolute positioning is better for multi-touch than relative drag
-                                        // or we can implement relative drag per pointer if preferred.
-                                        // Given the issue "not refined", absolute following finger is often smoother for pong on touch.
-                                        // But original was drag. Let's stick to drag or hybrid?
-                                        // Actually, distinct touches usually imply absolute control or relative pad.
-                                        // Let's try absolute tracking of the finger on the paddle axis for responsiveness.
-                                        
-                                        if (isTouchingP1Zone) p1Pos = targetPos
-                                        else p2Pos = targetPos
-                                    } else { // 1P
-                                        val userIsP1 = isSwapped
-                                        // In 1P, user controls their side.
-                                        if (userIsP1 && isTouchingP1Zone) p1Pos = targetPos
-                                        else if (!userIsP1 && !isTouchingP1Zone) p2Pos = targetPos
+                        // Guard against zero size to prevent division by zero
+                        if (w > 0 && h > 0) {
+                            val isL = w > h
+                            val crossAxisSize = if(isL) h else w
+                            val mainAxisSize = if(isL) w else h
+                            
+                            // We track all active pointers
+                            event.changes.forEach { change ->
+                                if (change.pressed) {
+                                    val inputPos = change.position
+                                    val posOnMainAxis = if(isL) inputPos.x else inputPos.y
+                                    val isTouchingP1Zone = posOnMainAxis < (mainAxisSize / 2)
+                                    
+                                    // Calculate absolute position on the track (0.0 to 1.0)
+                                    val posOnCrossAxis = if(isL) inputPos.y else inputPos.x
+                                    val targetPos = (posOnCrossAxis / crossAxisSize).coerceIn(0f, 1f)
+                                    
+                                    if (!targetPos.isNaN()) {
+                                        if (gameState == PongGameState.PLAYING || gameState == PongGameState.COUNTDOWN) { 
+                                            if (mode == 0) { // 2P
+                                                if (isTouchingP1Zone) p1Pos = targetPos
+                                                else p2Pos = targetPos
+                                            } else { // 1P
+                                                val userIsP1 = isSwapped
+                                                if (userIsP1 && isTouchingP1Zone) p1Pos = targetPos
+                                                else if (!userIsP1 && !isTouchingP1Zone) p2Pos = targetPos
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -533,11 +531,16 @@ fun PongGameLoop(
             
             if (katBitmap != null) {
                  drawIntoCanvas { canvas ->
-                   val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(p1Rect, corner)) }
-                   canvas.save()
-                   canvas.clipPath(path)
-                   canvas.nativeCanvas.drawBitmap(katBitmap, null, android.graphics.Rect(p1Rect.left.toInt(), p1Rect.top.toInt(), p1Rect.right.toInt(), p1Rect.bottom.toInt()), null)
-                   canvas.restore()
+                   try {
+                       val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(p1Rect, corner)) }
+                       canvas.save()
+                       canvas.clipPath(path)
+                       canvas.nativeCanvas.drawBitmap(katBitmap, null, android.graphics.Rect(p1Rect.left.toInt(), p1Rect.top.toInt(), p1Rect.right.toInt(), p1Rect.bottom.toInt()), null)
+                       canvas.restore()
+                   } catch (e: Exception) {
+                       // Fallback to rect if bitmap fails
+                       drawRoundRect(Color(0xFFE91E63), topLeft = p1TL, size = p1S, cornerRadius = corner)
+                   }
                 }
             } else {
                 drawRoundRect(Color(0xFFE91E63), topLeft = p1TL, size = p1S, cornerRadius = corner)
@@ -550,11 +553,15 @@ fun PongGameLoop(
 
              if (agusBitmap != null) {
                  drawIntoCanvas { canvas ->
-                   val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(p2Rect, corner)) }
-                   canvas.save()
-                   canvas.clipPath(path)
-                   canvas.nativeCanvas.drawBitmap(agusBitmap, null, android.graphics.Rect(p2Rect.left.toInt(), p2Rect.top.toInt(), p2Rect.right.toInt(), p2Rect.bottom.toInt()), null)
-                   canvas.restore()
+                   try {
+                       val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(p2Rect, corner)) }
+                       canvas.save()
+                       canvas.clipPath(path)
+                       canvas.nativeCanvas.drawBitmap(agusBitmap, null, android.graphics.Rect(p2Rect.left.toInt(), p2Rect.top.toInt(), p2Rect.right.toInt(), p2Rect.bottom.toInt()), null)
+                       canvas.restore()
+                   } catch (e: Exception) {
+                       drawRoundRect(Color(0xFF2196F3), topLeft = p2TL, size = p2S, cornerRadius = corner)
+                   }
                 }
             } else {
                 drawRoundRect(Color(0xFF2196F3), topLeft = p2TL, size = p2S, cornerRadius = corner)

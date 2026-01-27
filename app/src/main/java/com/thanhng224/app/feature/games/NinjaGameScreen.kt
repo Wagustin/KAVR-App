@@ -356,56 +356,7 @@ fun NinjaGameCanvas(
     knives: List<Knife>
 ) {
     val density = LocalDensity.current
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        val cx = w / 2
-        val cy = h / 2
-        
-        val radiusPx = TARGET_RADIUS_DP.dp.toPx()
-        
-        // Save logic to rotate target
-        rotate(degrees = Math.toDegrees(targetRotation.toDouble()).toFloat(), pivot = Offset(cx, cy)) {
-            // Draw Target Board
-            drawCircle(Color(0xFF5D4037), radiusPx, center = Offset(cx, cy)) // Wood
-            drawCircle(Color.White, radiusPx * 0.7f, center = Offset(cx, cy), style = Stroke(width = 20f))
-            drawCircle(Color(0xFFE53935), radiusPx * 0.2f, center = Offset(cx, cy)) // Bullseye
-            
-            // Draw Stuck Knives (They rotate with target)
-            knives.forEach { k ->
-                if (k.state == KnifeState.STUCK) {
-                    rotate(degrees = Math.toDegrees(k.angle.toDouble()).toFloat() - Math.toDegrees(targetRotation.toDouble()).toFloat() + 90f, pivot = Offset(cx, cy)) {
-                        // Draw Knife at correct radius? 
-                        // Wait, if I rotate canvas by targetRotation, then stuck knives tracked by 'angle'
-                        // should be drawn at 'angle' relative to 0.
-                        // Actually, k.angle IS the angle on the target.
-                        // So if I am inside the rotated reference frame of the target, I just draw at k.angle.
-                    }
-                    
-                    // Let's simplify:
-                    // Draw target.
-                    // Loop stuck knives.
-                    // x = cx + r * cos(k.angle)
-                    // y = cy + r * sin(k.angle)
-                    // Draw knife rotated to point to center.
-                }
-            }
-        }
-        
-        // Redraw stuck knives? 
-        // Correct approach:
-        // Inside `rotate(targetRotation)` block:
-        // Draw target.
-        // Draw stuck knives at their `k.angle`. `k.angle` is relative to target's 0.
-        // If P1 hits at screen PI/2, and target rot is 0, k.angle = PI/2.
-        // If target rot is PI/4, P1 hits at PI/2, k.angle = PI/2 - PI/4 = PI/4.
-        
-        // Re-implement inside rotate:
-        
-        // 1. Draw Target (Base)
-    }
-    
-    // Separate Draw implementation to handle rotation cleanly
+    // Combined Canvas for performance and correctness
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
@@ -450,4 +401,7 @@ fun NinjaGameCanvas(
              }
         }
     }
+    
+    // Separate Draw implementation to handle rotation cleanly
+    // Second canvas removed
 }
