@@ -235,11 +235,11 @@ fun MiniGolfGameScreen(navController: NavController) {
         // To make it clear, let's offset them slightly or just keep them same.
         // 1vs1: P1 White, P2 Red
         if (mode == MODE_2P) {
-            balls.add(Ball(currentLevel.startPos, Color.Black, Color.White))
-            balls.add(Ball(currentLevel.startPos, Color.Black, Color.Red))
+            balls.add(Ball(pos = currentLevel.startPos, color = Color.White))
+            balls.add(Ball(pos = currentLevel.startPos, color = Color.Red))
         } else {
             // 1P or AI
-            balls.add(Ball(currentLevel.startPos, Color.Black, Color.White))
+            balls.add(Ball(pos = currentLevel.startPos, color = Color.White))
             if (submode == SUBMODE_AI) {
                  // in older logic AI played virtually. Here do we want physical AI ball?
                  // User request "1vs1... both balls visible". Usually implies human vs human or human vs AI.
@@ -506,7 +506,9 @@ fun MiniGolfGameScreen(navController: NavController) {
     LaunchedEffect(turnMessage) {
         if (turnMessage.isNotEmpty()) {
             delay(2000)
-            resetBall()
+            delay(2000)
+            // resetBall() removed as it was undefined and likely unwanted here
+
             turnMessage = ""
         }
     }
@@ -707,7 +709,7 @@ fun MiniGolfGameScreen(navController: NavController) {
                              Text("Total Golpes: $p1TotalScore", color = Color.White, fontSize = 24.sp)
                         } else {
                              Text("¡NIVEL COMPLETADO!", color = Color.Yellow, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                             Text("Golpes: $p1Strokes / Par ${currentLevel.par}", color = Color.White, fontSize = 20.sp)
+                             Text("Golpes: ${balls.getOrNull(0)?.strokes ?: 0} / Par ${currentLevel.par}", color = Color.White, fontSize = 20.sp)
                                                           if (mode == MODE_2P) {
                                  Text("J2 Golpes: ${if (balls.size > 1) balls[1].strokes else 0}", color = Color.Red, fontSize = 20.sp)
                                  
