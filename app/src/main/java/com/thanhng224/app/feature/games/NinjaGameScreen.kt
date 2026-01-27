@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -76,6 +78,9 @@ fun NinjaGameScreen(navController: NavController) {
     var targetRotation by remember { mutableFloatStateOf(0f) }
     var rotationSpeed by remember { mutableFloatStateOf(baseSpeed) }
     var gameOver by remember { mutableStateOf(false) }
+    
+    // High Score (Survival)
+    var localHighScore by remember { mutableStateOf(0) }
 
     // Knives
     val knives = remember { mutableStateListOf<Knife>() }
@@ -261,11 +266,10 @@ fun NinjaGameScreen(navController: NavController) {
                     }
                 }
             } else {
-                // SURVIVAL 1P
-                 // Track High Score locally for this session (since no ViewModel yet)
-                 var localHighScore by remember { mutableStateOf(0) } // Simplified persistence
-                 
-                 // Animation State for Score (Transient Pulse)
+                 // SURVIVAL 1P
+                  // Track High Score locally for this session (moved to top level)
+                  
+                  // Animation State for Score (Transient Pulse)
                  val reactionAnim = remember { androidx.compose.animation.core.Animatable(0f) }
                  
                  LaunchedEffect(scores.second) {
