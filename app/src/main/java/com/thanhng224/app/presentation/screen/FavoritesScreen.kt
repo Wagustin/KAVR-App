@@ -209,9 +209,10 @@ fun FavoritesScreen(navController: NavController) {
                         // 1 Player -> Ask Submode
                         currentFlow = DialogStep.MINIGOLF_SUBMODE
                     } else {
-                        // 2 Player -> Difficulty
-                        selectedMiniGolfSubMode = 0 // Irrelevant for 2P but set default
-                        currentFlow = DialogStep.DIFFICULTY
+                        // 2 Player -> Versus (Direct)
+                        selectedMiniGolfSubMode = 0
+                        navController.navigate(Screen.MiniGolfGame.createRoute(mode, 0, 1)) // Default Diff 1
+                        currentFlow = DialogStep.HIDDEN
                     }
                 }
             )
@@ -222,7 +223,8 @@ fun FavoritesScreen(navController: NavController) {
                 onDismiss = { currentFlow = DialogStep.MINIGOLF_MODE },
                 onSelect = { submode ->
                     selectedMiniGolfSubMode = submode
-                    currentFlow = DialogStep.DIFFICULTY
+                    navController.navigate(Screen.MiniGolfGame.createRoute(selectedMiniGolfMode, submode, 1)) // Default Diff 1
+                    currentFlow = DialogStep.HIDDEN
                 }
             )
         }

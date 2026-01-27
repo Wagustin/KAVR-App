@@ -313,24 +313,42 @@ fun NinjaGameScreen(navController: NavController) {
                          fontWeight = FontWeight.Bold
                      )
                      
-                     if (gameOver) {
-                         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.6f)), contentAlignment = Alignment.Center) {
-                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                 if (mode == 1) {
-                                     Text("GAME OVER", fontSize = 50.sp, color = Color.Red, fontWeight = FontWeight.Bold)
-                                     Text("Score: ${scores.second}", fontSize = 30.sp, color = Color.White)
-                                     Text("High Score: $localHighScore", fontSize = 20.sp, color = Color.Yellow)
-                                 } else {
-                                     // Versus Outcome - We check who has more points/knives or who didn't crash?
-                                     // Logic: The collision logic GAVE the point to the survivor.
-                                     // So we just show the current score or "P1/P2 Wins Round".
-                                     Text("ROUND OVER", fontSize = 50.sp, color = Color.Red, fontWeight = FontWeight.Bold)
-                                     Text("Top: ${scores.first} - Bot: ${scores.second}", fontSize = 30.sp, color = Color.White)
-                                 }
-                                 Text("Tap to Retry", fontSize = 20.sp, color = Color.Gray)
-                             }
-                         }
-                     }
+                }
+            }
+            
+            // GLOBAL OVERLAY (For both modes)
+            if (gameOver) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha=0.7f))
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                            // Reset Logic
+                            knives.clear()
+                            if (mode == 1) {
+                                scores = localHighScore to 0
+                                rotationSpeed = baseSpeed
+                            } else {
+                                // In Versus, maybe we don't reset scores? 
+                                // User asked for "Round Over" logic basically.
+                                // Preserving score accumulation logic from game loop
+                            }
+                            gameOver = false
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        if (mode == 1) {
+                            Text("GAME OVER", fontSize = 50.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                            Text("Score: ${scores.second}", fontSize = 30.sp, color = Color.White)
+                            Text("High Score: $localHighScore", fontSize = 20.sp, color = Color.Yellow)
+                        } else {
+                            Text("¡RONDA TERMINADA!", fontSize = 40.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                            Text("Top: ${scores.first} - Bot: ${scores.second}", fontSize = 30.sp, color = Color.White)
+                        }
+                        Spacer(Modifier.height(20.dp))
+                        Text("Toca para Reiniciar", fontSize = 20.sp, color = Color.Gray)
+                    }
                 }
             }
         }
