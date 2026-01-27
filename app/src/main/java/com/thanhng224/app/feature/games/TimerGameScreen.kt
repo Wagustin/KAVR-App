@@ -310,9 +310,6 @@ fun TimerGameScreen(navController: NavController) {
                 }
             }
 
-                }
-            }
-
             // 3. CENTRAL TARGET DISPLAY (Overlay)
             // Always visible, on top of divider
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

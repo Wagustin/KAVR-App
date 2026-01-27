@@ -42,6 +42,7 @@ class MemoryViewModel @Inject constructor(
 
     // Lista de recursos de fotos (Copiado de MemoriesViewModel + R.drawable prefix)
     // Asumimos que los imports de R están presentes o los agregamos.
+    private val photoResources = listOf(
         com.thanhng224.app.R.drawable.img_0707,
         com.thanhng224.app.R.drawable.img_0847,
         com.thanhng224.app.R.drawable.img_1025,
@@ -54,6 +55,7 @@ class MemoryViewModel @Inject constructor(
         com.thanhng224.app.R.drawable.img_2149,
         com.thanhng224.app.R.drawable.kitkatq1,
         com.thanhng224.app.R.drawable.kitkatq2
+    )
 
     // Argumentos
     private val argPlayers = savedStateHandle.get<Int>("players") ?: 1
